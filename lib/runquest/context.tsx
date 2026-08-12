@@ -4,6 +4,7 @@ import * as Location from "expo-location";
 import { Pedometer } from "expo-sensors";
 
 import { inspectCapabilities } from "@/lib/runquest/capabilities";
+import { evaluateNewAchievements } from "@/lib/runquest/achievements";
 import { getContractProgress, getDailyContract, isContractClaimed } from "@/lib/runquest/contracts";
 import { createDemoPoint, createWorkoutId, currentRuleset, processLocationSample, resolveTitle } from "@/lib/runquest/engine";
 import { DEFAULT_RUNQUEST_STATE, loadRunQuestState, saveRunQuestState } from "@/lib/runquest/persistence";
@@ -244,6 +245,7 @@ export function RunQuestProvider({ children }: PropsWithChildren) {
     const contractRewardXp = contractCompleted ? contract.rewardXp : 0;
     const totalXpBefore = stateRef.current.profile.totalXp;
     const totalXpAfter = totalXpBefore + active.xpEarned + contractRewardXp;
+    const unlockedAchievementIds = evaluateNewAchievements(stateRef.current, active, totalXpAfter, contractCompleted);
     const workout = {
       id: active.id,
       startedAt: active.startedAt,
@@ -266,13 +268,16 @@ export function RunQuestProvider({ children }: PropsWithChildren) {
         completedContractClaims: contractCompleted
           ? [...stateRef.current.profile.completedContractClaims, contract.claimKey].slice(-366)
           : stateRef.current.profile.completedContractClaims,
+        achievements: unlockedAchievementIds.length
+          ? [...stateRef.current.profile.achievements, ...unlockedAchievementIds.map((id) => ({ id, unlockedAt: endedAt }))].slice(-50)
+          : stateRef.current.profile.achievements,
       },
       workouts: [workout, ...stateRef.current.workouts].slice(0, 200),
     };
     commitState(nextState, true);
     activeRef.current = null;
     setActiveExpedition(null);
-    setLatestReport({ workout, contract, contractProgress, contractCompleted, totalXpBefore, totalXpAfter });
+    setLatestReport({ workout, contract, contractProgress, contractCompleted, totalXpBefore, totalXpAfter, unlockedAchievementIds });
   }, [clearSubscriptions, commitState]);
 
   const updateSettings = useCallback((patch: Partial<RunQuestState["settings"]>) => {

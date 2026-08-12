@@ -77,6 +77,7 @@ export default function HomeScreen() {
             <Metric label="Runs saved" value={String(state.workouts.length)} accent={rq.gold} />
           </View>
           <View style={styles.ledgerRow}><View style={[styles.ledgerDot, { backgroundColor: persistenceState === "SAVED" ? rq.teal : persistenceState === "SAVING" ? rq.gold : rq.coral }]} /><Text style={styles.ledgerText}>{persistenceState === "SAVED" ? "Local ledger secured" : persistenceState === "SAVING" ? "Saving expedition data…" : "Save will retry when storage is available"}</Text></View>
+          <Text style={styles.achievementCaption}>{state.profile.achievements.length} / 7 permanent achievements unlocked</Text>
         </Panel>
       </ScrollView>
     </ScreenContainer>
@@ -113,4 +114,5 @@ const styles = StyleSheet.create({
   ledgerRow: { flexDirection: "row", alignItems: "center", gap: 7, borderTopWidth: 1, borderTopColor: rq.border, paddingTop: 12 },
   ledgerDot: { width: 7, height: 7, borderRadius: 4 },
   ledgerText: { color: rq.mist, fontSize: 11, fontWeight: "700" },
+  achievementCaption: { color: rq.gold, fontSize: 11, fontWeight: "800", marginTop: -6 },
 });

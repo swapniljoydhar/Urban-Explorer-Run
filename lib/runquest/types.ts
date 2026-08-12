@@ -59,6 +59,21 @@ export type PlayerProfile = {
   title: string;
   badges: string[];
   completedContractClaims: string[];
+  achievements: AchievementRecord[];
+};
+
+export type AchievementId = "FIRST_MARK" | "FRONTIER_FINDER" | "LONG_RANGE" | "MASTER_CARTOGRAPHER" | "CONTRACT_KEEPER" | "ATLAS_PATHFINDER" | "EXPEDITION_ARCHIVIST";
+
+export type AchievementRecord = {
+  id: AchievementId;
+  unlockedAt: number;
+};
+
+export type AchievementDefinition = {
+  id: AchievementId;
+  title: string;
+  description: string;
+  icon: "explore" | "public" | "directions-run" | "auto-awesome" | "verified" | "map" | "history";
 };
 
 export type RunQuestSettings = {
@@ -110,6 +125,7 @@ export type ExpeditionReport = {
   contractCompleted: boolean;
   totalXpBefore: number;
   totalXpAfter: number;
+  unlockedAchievementIds: AchievementId[];
 };
 
 export type DiscoveryOutcome = {

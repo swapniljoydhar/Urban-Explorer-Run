@@ -38,6 +38,10 @@ const persistedStateSchema = z.object({
     title: z.string().max(64).optional(),
     badges: z.array(z.string().max(64)).max(100).optional(),
     completedContractClaims: z.array(z.string().max(64)).max(366).optional(),
+    achievements: z.array(z.object({
+      id: z.enum(["FIRST_MARK", "FRONTIER_FINDER", "LONG_RANGE", "MASTER_CARTOGRAPHER", "CONTRACT_KEEPER", "ATLAS_PATHFINDER", "EXPEDITION_ARCHIVIST"]),
+      unlockedAt: finiteNumber.nonnegative(),
+    })).max(50).optional(),
   }).optional(),
   tiles: z.record(z.string(), tileSchema).optional(),
   workouts: z.array(workoutSchema).max(200).optional(),

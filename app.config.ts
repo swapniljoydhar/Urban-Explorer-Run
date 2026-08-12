@@ -63,7 +63,7 @@ const config: ExpoConfig = {
     edgeToEdgeEnabled: true,
     predictiveBackGestureEnabled: false,
     package: env.androidPackage,
-    permissions: ["POST_NOTIFICATIONS", "ACCESS_COARSE_LOCATION", "ACCESS_FINE_LOCATION", "ACTIVITY_RECOGNITION"],
+    permissions: ["ACCESS_COARSE_LOCATION", "ACCESS_FINE_LOCATION", "ACTIVITY_RECOGNITION"],
     intentFilters: [
       {
         action: "VIEW",
@@ -84,26 +84,15 @@ const config: ExpoConfig = {
     favicon: "./assets/images/favicon.png",
   },
   plugins: [
+    "expo-font",
+    "expo-web-browser",
     "expo-router",
-    [
-      "expo-audio",
-      {
-        microphonePermission: "Allow $(PRODUCT_NAME) to access your microphone.",
-      },
-    ],
     [
       "expo-location",
       {
         locationWhenInUsePermission: "Allow $(PRODUCT_NAME) to record your active expedition and reveal your local atlas.",
         isAndroidBackgroundLocationEnabled: false,
         isAndroidForegroundServiceEnabled: false,
-      },
-    ],
-    [
-      "expo-video",
-      {
-        supportsBackgroundPlayback: true,
-        supportsPictureInPicture: true,
       },
     ],
     [

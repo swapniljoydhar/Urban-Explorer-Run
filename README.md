@@ -34,6 +34,8 @@ See [docs/compatibility.md](docs/compatibility.md) for the implementation and re
 
 See [docs/experience-hardening-audit.md](docs/experience-hardening-audit.md) for the product audit, hardening choices, and evaluated open-source foundations.
 
+See [docs/android-performance-baseline.md](docs/android-performance-baseline.md) for the measured Android bundle baseline, environment limitations, and physical-device release checks.
+
 ## Architecture
 
 ```text

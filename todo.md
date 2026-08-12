@@ -23,3 +23,7 @@
 - [x] Validate the strengthened app against compatibility, performance, and regression limits
 - [x] Restore and verify the development server after the repeated preview interruption
 - [x] Push the completed RunQuest source tree to the Urban-Explorer-Run GitHub repository safely
+- [x] Establish the available Android emulator or compatible runtime test baseline and document its limits
+- [x] Measure bundle composition and memory-relevant runtime indicators, then apply evidence-based optimizations
+- [x] Add a durable achievement system that complements rather than duplicates daily Field Contracts
+- [x] Validate Android compatibility paths, achievement persistence, bundle output, and performance safeguards

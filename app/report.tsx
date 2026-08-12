@@ -6,6 +6,7 @@ import { Metric, Panel, PrimaryButton, rq, StatePill } from "@/components/runque
 import { ScreenContainer } from "@/components/screen-container";
 import { formatDistance } from "@/lib/runquest/format";
 import { calculateLevel } from "@/lib/runquest/engine";
+import { getAchievement } from "@/lib/runquest/achievements";
 import { formatContractProgress } from "@/lib/runquest/contracts";
 import { useRunQuest } from "@/lib/runquest/context";
 
@@ -17,7 +18,7 @@ export default function ReportScreen() {
     return <ScreenContainer className="px-5 justify-center" safeAreaClassName="bg-background"><Panel style={styles.empty}><Text style={styles.emptyTitle}>No expedition report is ready.</Text><PrimaryButton label="Return to Quest" icon="arrow-back" onPress={() => router.replace("/(tabs)")} /></Panel></ScreenContainer>;
   }
 
-  const { workout, contract, contractProgress, contractCompleted, totalXpBefore, totalXpAfter } = latestReport;
+  const { workout, contract, contractProgress, contractCompleted, totalXpBefore, totalXpAfter, unlockedAchievementIds } = latestReport;
   const startLevel = calculateLevel(totalXpBefore);
   const endLevel = calculateLevel(totalXpAfter);
   const finish = () => { dismissReport(); router.replace("/(tabs)"); };
@@ -41,6 +42,14 @@ export default function ReportScreen() {
           <View style={styles.contractTrack}><View style={[styles.contractFill, { width: `${Math.max(5, Math.min(100, contractProgress / contract.target * 100))}%` }]} /></View>
           <View style={styles.contractFooter}><Text style={styles.contractProgress}>{formatContractProgress(contract, contractProgress)}</Text><Text style={styles.contractReward}>{contractCompleted ? `+${contract.rewardXp} XP secured` : `${contract.rewardXp} XP reward`}</Text></View>
         </Panel>
+
+        {unlockedAchievementIds.length ? <Panel style={styles.achievementPanel}>
+          <Text style={styles.achievementEyebrow}>PERMANENT ACHIEVEMENT{unlockedAchievementIds.length > 1 ? "S" : ""} UNLOCKED</Text>
+          {unlockedAchievementIds.map((id) => {
+            const achievement = getAchievement(id);
+            return <View key={id} style={styles.achievementRow}><View style={styles.achievementIcon}><MaterialIcons name={achievement.icon} color={rq.midnight} size={18} /></View><View style={styles.achievementCopy}><Text style={styles.achievementTitle}>{achievement.title}</Text><Text style={styles.achievementBody}>{achievement.description}</Text></View></View>;
+          })}
+        </Panel> : null}
 
         <Panel style={styles.nextPanel}><Text style={styles.nextLabel}>NEXT FIELD INSTRUCTION</Text><Text style={styles.nextText}>{contractCompleted ? "Tomorrow’s contract will rotate at midnight. Revisit a mapped cell in a future outing to advance Cartography Mastery." : "Take another expedition when you are ready—the contract remains active for the rest of today."}</Text></Panel>
         <PrimaryButton label="Return to Quest" icon="arrow-forward" onPress={finish} />
@@ -70,6 +79,13 @@ const styles = StyleSheet.create({
   contractFooter: { flexDirection: "row", justifyContent: "space-between", gap: 12 },
   contractProgress: { color: rq.cloud, fontSize: 12, fontWeight: "800" },
   contractReward: { color: rq.gold, fontSize: 12, fontWeight: "900" },
+  achievementPanel: { gap: 10, borderColor: rq.gold + "88", backgroundColor: rq.gold + "12" },
+  achievementEyebrow: { color: rq.gold, fontSize: 10, letterSpacing: 1, fontWeight: "900" },
+  achievementRow: { flexDirection: "row", gap: 10, alignItems: "center" },
+  achievementIcon: { width: 38, height: 38, borderRadius: 14, alignItems: "center", justifyContent: "center", backgroundColor: rq.gold },
+  achievementCopy: { flex: 1, gap: 2 },
+  achievementTitle: { color: rq.cloud, fontSize: 14, fontWeight: "900" },
+  achievementBody: { color: rq.mist, fontSize: 12, lineHeight: 17, fontWeight: "600" },
   nextPanel: { gap: 6 },
   nextLabel: { color: rq.cyan, fontSize: 10, letterSpacing: 1, fontWeight: "900" },
   nextText: { color: rq.mist, fontSize: 13, lineHeight: 19, fontWeight: "500" },

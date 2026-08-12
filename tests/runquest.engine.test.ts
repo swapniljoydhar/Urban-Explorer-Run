@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { getDailyContract } from "@/lib/runquest/contracts";
+import { evaluateNewAchievements } from "@/lib/runquest/achievements";
 import { calculateLevel, calculateXp, encodeHexGridV1, processLocationSample } from "@/lib/runquest/engine";
 import { migrateRunQuestState } from "@/lib/runquest/migration";
 import { safelyRemoveSubscription } from "@/lib/runquest/subscriptions";
@@ -93,6 +94,7 @@ describe("RunQuest compatibility-safe engine", () => {
     expect(migrated.profile.totalXp).toBe(800);
     expect(migrated.profile.title).toBe("Neighborhood Scout");
     expect(migrated.profile.completedContractClaims).toEqual([]);
+    expect(migrated.profile.achievements).toEqual([]);
     expect(migrated.settings.hapticsEnabled).toBe(false);
     expect(migrated.settings.trackingMode).toBe("balanced");
     expect(migrated.workouts).toEqual([]);
@@ -110,6 +112,23 @@ describe("RunQuest compatibility-safe engine", () => {
     const second = getDailyContract(timestamp);
     expect(first).toEqual(second);
     expect(first.claimKey).toContain("2026-08-12");
+  });
+
+  it("unlocks permanent achievements once without duplicating daily contracts", () => {
+    const baseline = migrateRunQuestState({});
+    const active = expedition();
+    active.newTileIds = ["one", "two", "three"];
+    active.distanceMeters = 2_500;
+    const firstUnlocks = evaluateNewAchievements(baseline, active, 100, false);
+    expect(firstUnlocks).toContain("FIRST_MARK");
+    expect(firstUnlocks).toContain("FRONTIER_FINDER");
+    expect(firstUnlocks).toContain("LONG_RANGE");
+    expect(firstUnlocks).not.toContain("CONTRACT_KEEPER");
+    const withFirstMark = {
+      ...baseline,
+      profile: { ...baseline.profile, achievements: [{ id: "FIRST_MARK" as const, unlockedAt: 1 }] },
+    };
+    expect(evaluateNewAchievements(withFirstMark, active, 100, false)).not.toContain("FIRST_MARK");
   });
 
   it("never calls a browser location subscription removal path during cleanup", () => {
