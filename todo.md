@@ -42,3 +42,4 @@
 - [ ] Plan a compatibility-safe cleanup of unused template code, folders, assets, dependencies, and development-server processes only after approved regression coverage and build validation are defined
 - [ ] Define post-approval physical-device stress, lifecycle, data-recovery, offline-package, and performance validation for the approved changes
 - [ ] Produce and obtain review of the detailed MapLibre animated-marker, accuracy-indicator, and camera-follow technical design before implementing that feature
+- [ ] Research maintained open-source map, offline, fitness-tracking, and React Native reference projects; reconcile only compatible patterns with the approved RunQuest roadmap before implementation
