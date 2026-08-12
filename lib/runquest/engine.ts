@@ -10,6 +10,15 @@ import {
 const EARTH_RADIUS_METERS = 6_371_000;
 const HEX_RADIUS_METERS = 75;
 const MAX_SEGMENT_METERS = 450;
+const MAX_RUNNING_SPEED_METERS_PER_SECOND = 13;
+
+export function resolveTitle(totalXp: number): string {
+  if (totalXp >= 4_000) return "Wayfinder Prime";
+  if (totalXp >= 1_800) return "Terrain Cartographer";
+  if (totalXp >= 800) return "Atlas Pathfinder";
+  if (totalXp >= 250) return "Street Surveyor";
+  return "Neighborhood Scout";
+}
 
 export function haversineMeters(a: RoutePoint, b: RoutePoint): number {
   const toRadians = (degrees: number) => (degrees * Math.PI) / 180;
@@ -81,6 +90,9 @@ export function processLocationSample(
   tiles: Record<string, TileRecord>,
   nextPoint: RoutePoint,
 ): DiscoveryOutcome {
+  if (!Number.isFinite(nextPoint.latitude) || !Number.isFinite(nextPoint.longitude) || !Number.isFinite(nextPoint.timestamp) || Math.abs(nextPoint.latitude) > 90 || Math.abs(nextPoint.longitude) > 180) {
+    return { nextExpedition: { ...expedition, notice: "Invalid location sample ignored." }, nextTiles: tiles, xpGained: 0, discoveredTileId: null };
+  }
   if (nextPoint.accuracy !== null && nextPoint.accuracy > 75) {
     return {
       nextExpedition: { ...expedition, notice: "Location confidence is low — map rewards are paused." },
@@ -91,11 +103,19 @@ export function processLocationSample(
   }
 
   const route = expedition.route.length >= 250 ? expedition.route.slice(-249) : expedition.route;
+  if (expedition.lastPoint && nextPoint.timestamp <= expedition.lastPoint.timestamp) {
+    return { nextExpedition: { ...expedition, notice: "Out-of-order location sample ignored." }, nextTiles: tiles, xpGained: 0, discoveredTileId: null };
+  }
   const rawSegment = expedition.lastPoint ? haversineMeters(expedition.lastPoint, nextPoint) : 0;
+  const elapsedSeconds = expedition.lastPoint ? (nextPoint.timestamp - expedition.lastPoint.timestamp) / 1_000 : 0;
+  if (elapsedSeconds > 0 && rawSegment / elapsedSeconds > MAX_RUNNING_SPEED_METERS_PER_SECOND) {
+    return { nextExpedition: { ...expedition, notice: "Unrealistic movement sample ignored to protect your atlas." }, nextTiles: tiles, xpGained: 0, discoveredTileId: null };
+  }
   const segmentMeters = rawSegment > MAX_SEGMENT_METERS ? 0 : rawSegment;
   const tileId = encodeHexGridV1(nextPoint.latitude, nextPoint.longitude);
   const existingTile = tiles[tileId];
   const isNewTile = !existingTile;
+  const hasVisitedThisExpedition = expedition.visitedTileIds.includes(tileId);
   const now = nextPoint.timestamp;
 
   const nextTiles = isNewTile
@@ -112,7 +132,9 @@ export function processLocationSample(
           mastery: "SEEN" as const,
         },
       }
-    : {
+    : hasVisitedThisExpedition
+      ? tiles
+      : {
         ...tiles,
         [tileId]: {
         ...existingTile,
@@ -131,6 +153,7 @@ export function processLocationSample(
       distanceMeters: expedition.distanceMeters + segmentMeters,
       xpEarned: expedition.xpEarned + xpGained,
       newTileIds: isNewTile ? [...expedition.newTileIds, tileId] : expedition.newTileIds,
+      visitedTileIds: hasVisitedThisExpedition ? expedition.visitedTileIds : [...expedition.visitedTileIds, tileId],
       route: [...route, nextPoint],
       lastPoint: nextPoint,
       notice: discoveryMessage,

@@ -49,6 +49,7 @@ export type WorkoutRecord = {
   steps: number;
   xpEarned: number;
   newTileCount: number;
+  contractRewardXp: number;
   route: RoutePoint[];
   rulesetVersion: typeof PROGRESSION_RULESET_VERSION;
 };
@@ -57,6 +58,7 @@ export type PlayerProfile = {
   totalXp: number;
   title: string;
   badges: string[];
+  completedContractClaims: string[];
 };
 
 export type RunQuestSettings = {
@@ -82,10 +84,32 @@ export type ActiveExpedition = {
   steps: number;
   xpEarned: number;
   newTileIds: string[];
+  visitedTileIds: string[];
   route: RoutePoint[];
   lastPoint: RoutePoint | null;
   demoSequence: number;
   notice: string;
+};
+
+export type FieldContractKind = "FRONTIER" | "ENDURANCE" | "EXPEDITION";
+
+export type FieldContract = {
+  claimKey: string;
+  kind: FieldContractKind;
+  title: string;
+  instruction: string;
+  target: number;
+  rewardXp: number;
+  unit: "cells" | "meters" | "expedition";
+};
+
+export type ExpeditionReport = {
+  workout: WorkoutRecord;
+  contract: FieldContract;
+  contractProgress: number;
+  contractCompleted: boolean;
+  totalXpBefore: number;
+  totalXpAfter: number;
 };
 
 export type DiscoveryOutcome = {

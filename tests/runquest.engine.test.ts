@@ -1,11 +1,7 @@
 import { describe, expect, it } from "vitest";
 
-import {
-  calculateLevel,
-  calculateXp,
-  encodeHexGridV1,
-  processLocationSample,
-} from "@/lib/runquest/engine";
+import { getDailyContract } from "@/lib/runquest/contracts";
+import { calculateLevel, calculateXp, encodeHexGridV1, processLocationSample } from "@/lib/runquest/engine";
 import { migrateRunQuestState } from "@/lib/runquest/migration";
 import { safelyRemoveSubscription } from "@/lib/runquest/subscriptions";
 import type { ActiveExpedition, RoutePoint } from "@/lib/runquest/types";
@@ -22,6 +18,7 @@ function expedition(): ActiveExpedition {
     steps: 0,
     xpEarned: 0,
     newTileIds: [],
+    visitedTileIds: [],
     route: [],
     lastPoint: null,
     demoSequence: 0,
@@ -61,14 +58,30 @@ describe("RunQuest compatibility-safe engine", () => {
     expect(Object.keys(result.nextTiles)).toHaveLength(0);
   });
 
+  it("rejects invalid, out-of-order, and implausibly fast movement samples", () => {
+    const first = processLocationSample(expedition(), {}, firstPoint);
+    const invalid = processLocationSample(first.nextExpedition, first.nextTiles, { ...firstPoint, latitude: 100, timestamp: 2_000 });
+    const outOfOrder = processLocationSample(first.nextExpedition, first.nextTiles, { ...firstPoint, timestamp: 999 });
+    const tooFast = processLocationSample(first.nextExpedition, first.nextTiles, { latitude: 37.7849, longitude: -122.4194, timestamp: 2_000, accuracy: 8 });
+    expect(invalid.xpGained).toBe(0);
+    expect(outOfOrder.xpGained).toBe(0);
+    expect(tooFast.xpGained).toBe(0);
+    expect(tooFast.nextExpedition.route).toHaveLength(first.nextExpedition.route.length);
+  });
+
+  it("counts a revisited tile once per expedition while preserving cross-expedition mastery", () => {
+    const discovered = processLocationSample(expedition(), {}, firstPoint);
+    const returnVisit = processLocationSample(expedition(), discovered.nextTiles, { ...firstPoint, timestamp: 5_000 });
+    const duplicateVisit = processLocationSample(returnVisit.nextExpedition, returnVisit.nextTiles, { ...firstPoint, timestamp: 10_000 });
+    const tileId = discovered.discoveredTileId as string;
+    expect(returnVisit.nextTiles[tileId].visitCount).toBe(2);
+    expect(duplicateVisit.nextTiles[tileId].visitCount).toBe(2);
+    expect(duplicateVisit.nextTiles[tileId].mastery).toBe("MAPPED");
+  });
+
   it("keeps the in-memory route window bounded during long expeditions", () => {
     const active = expedition();
-    active.route = Array.from({ length: 250 }, (_, index) => ({
-      latitude: 37.7749 + index * 0.000001,
-      longitude: -122.4194,
-      timestamp: 1_000 + index,
-      accuracy: 6,
-    }));
+    active.route = Array.from({ length: 250 }, (_, index) => ({ latitude: 37.7749 + index * 0.000001, longitude: -122.4194, timestamp: 1_000 + index, accuracy: 6 }));
     active.lastPoint = active.route.at(-1) ?? null;
     const result = processLocationSample(active, {}, { latitude: 37.7752, longitude: -122.4194, timestamp: 2_000, accuracy: 6 });
     expect(result.nextExpedition.route).toHaveLength(250);
@@ -79,9 +92,24 @@ describe("RunQuest compatibility-safe engine", () => {
     expect(migrated.version).toBe(1);
     expect(migrated.profile.totalXp).toBe(800);
     expect(migrated.profile.title).toBe("Neighborhood Scout");
+    expect(migrated.profile.completedContractClaims).toEqual([]);
     expect(migrated.settings.hapticsEnabled).toBe(false);
     expect(migrated.settings.trackingMode).toBe("balanced");
     expect(migrated.workouts).toEqual([]);
+  });
+
+  it("rejects malformed persisted values instead of accepting unsafe numeric data", () => {
+    const migrated = migrateRunQuestState({ profile: { totalXp: -50 }, settings: { trackingMode: "not-a-mode" } });
+    expect(migrated.profile.totalXp).toBe(0);
+    expect(migrated.settings.trackingMode).toBe("balanced");
+  });
+
+  it("keeps the daily field contract deterministic for a local calendar day", () => {
+    const timestamp = new Date(2026, 7, 12, 9, 0, 0).getTime();
+    const first = getDailyContract(timestamp);
+    const second = getDailyContract(timestamp);
+    expect(first).toEqual(second);
+    expect(first.claimKey).toContain("2026-08-12");
   });
 
   it("never calls a browser location subscription removal path during cleanup", () => {

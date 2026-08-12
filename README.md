@@ -6,11 +6,11 @@ RunQuest is an Android-first, local-first exploration fitness game. A run or wal
 
 | Area | Current behavior |
 |---|---|
-| Expedition loop | A user can start an expedition, pause or resume it, finish it, and save a local summary. |
+| Expedition loop | A user can start an expedition, pause or resume it, work toward a rotating Field Contract, finish it, and receive a local expedition report. |
 | Foreground tracking | Foreground location is requested only when a quest starts. If unavailable, the app uses a clearly labeled local demo expedition. |
-| Cartography | A deterministic, versioned hex-grid identity records discovery, revisit mapping, and mastery. |
-| Progression | Distance and newly discovered cells earn versioned XP. The level curve is deterministic. |
-| Persistence | Local state is stored with a schema version and safe defaults for future migrations. |
+| Cartography | A deterministic, versioned hex-grid identity records discovery, revisit mapping, and mastery; a tile earns only one revisit credit per expedition. |
+| Progression | Distance, newly discovered cells, and completed daily Field Contracts earn versioned XP. The level curve and title ladder are deterministic. |
+| Persistence | Local state is schema-validated before migration, batched during active play, and automatically retried when local storage temporarily fails. |
 | Compatibility | Device capabilities are categorized as Available, Limited, Unavailable, or Blocked by User. |
 | Performance | Route history is bounded in memory, history uses `FlatList`, and no server, account, cloud sync, or background worker is required for the core loop. |
 
@@ -28,8 +28,11 @@ Within the supported range, releases must preserve these contracts:
 | Capability fallback | New features must describe an unavailable state and retain the core local expedition loop on lower-capability devices. |
 | Permissions | Permissions are requested when a feature is used, not at application launch. Declining a capability must not produce a dead end. |
 | Performance | Raw route history is bounded while an expedition is active. Long lists remain virtualized. |
+| GPS integrity | Invalid coordinates, weak accuracy, non-monotonic samples, and implausible movement speeds do not affect routes, tiles, or rewards. |
 
 See [docs/compatibility.md](docs/compatibility.md) for the implementation and release rules.
+
+See [docs/experience-hardening-audit.md](docs/experience-hardening-audit.md) for the product audit, hardening choices, and evaluated open-source foundations.
 
 ## Architecture
 

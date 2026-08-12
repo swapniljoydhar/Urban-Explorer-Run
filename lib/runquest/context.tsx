@@ -4,12 +4,14 @@ import * as Location from "expo-location";
 import { Pedometer } from "expo-sensors";
 
 import { inspectCapabilities } from "@/lib/runquest/capabilities";
-import { createDemoPoint, createWorkoutId, currentRuleset, processLocationSample } from "@/lib/runquest/engine";
+import { getContractProgress, getDailyContract, isContractClaimed } from "@/lib/runquest/contracts";
+import { createDemoPoint, createWorkoutId, currentRuleset, processLocationSample, resolveTitle } from "@/lib/runquest/engine";
 import { DEFAULT_RUNQUEST_STATE, loadRunQuestState, saveRunQuestState } from "@/lib/runquest/persistence";
 import { safelyRemoveSubscription } from "@/lib/runquest/subscriptions";
 import {
   type ActiveExpedition,
   type CapabilitySnapshot,
+  type ExpeditionReport,
   type ExpeditionMode,
   type RoutePoint,
   type RunQuestState,
@@ -20,6 +22,8 @@ type RunQuestContextValue = {
   hydrated: boolean;
   state: RunQuestState;
   activeExpedition: ActiveExpedition | null;
+  latestReport: ExpeditionReport | null;
+  persistenceState: "SAVED" | "SAVING" | "PENDING";
   capabilities: CapabilitySnapshot | null;
   refreshCapabilities: () => Promise<void>;
   startExpedition: () => Promise<ExpeditionMode>;
@@ -27,6 +31,7 @@ type RunQuestContextValue = {
   resumeExpedition: () => void;
   endExpedition: () => Promise<void>;
   recordDemoDiscovery: () => void;
+  dismissReport: () => void;
   setTrackingMode: (mode: TrackingMode) => void;
   setHapticsEnabled: (enabled: boolean) => void;
   setReduceMotion: (enabled: boolean) => void;
@@ -45,6 +50,7 @@ function createExpedition(mode: ExpeditionMode): ActiveExpedition {
     steps: 0,
     xpEarned: 0,
     newTileIds: [],
+    visitedTileIds: [],
     route: [],
     lastPoint: null,
     demoSequence: 0,
@@ -56,11 +62,16 @@ export function RunQuestProvider({ children }: PropsWithChildren) {
   const [state, setState] = useState<RunQuestState>(DEFAULT_RUNQUEST_STATE);
   const [hydrated, setHydrated] = useState(false);
   const [activeExpedition, setActiveExpedition] = useState<ActiveExpedition | null>(null);
+  const [latestReport, setLatestReport] = useState<ExpeditionReport | null>(null);
+  const [persistenceState, setPersistenceState] = useState<"SAVED" | "SAVING" | "PENDING">("SAVED");
   const [capabilities, setCapabilities] = useState<CapabilitySnapshot | null>(null);
   const stateRef = useRef(state);
   const activeRef = useRef<ActiveExpedition | null>(null);
   const locationSubscription = useRef<Location.LocationSubscription | null>(null);
   const pedometerSubscription = useRef<{ remove: () => void } | null>(null);
+  const pendingPersist = useRef<RunQuestState | null>(null);
+  const persistTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const persistenceInFlight = useRef(false);
 
   useEffect(() => {
     void Promise.all([loadRunQuestState(), inspectCapabilities()]).then(([persistedState, nextCapabilities]) => {
@@ -71,11 +82,51 @@ export function RunQuestProvider({ children }: PropsWithChildren) {
     });
   }, []);
 
-  const commitState = useCallback((nextState: RunQuestState) => {
+  const flushPersistence = useCallback(async () => {
+    if (persistenceInFlight.current) return;
+    const snapshot = pendingPersist.current;
+    if (!snapshot) return;
+    pendingPersist.current = null;
+    persistenceInFlight.current = true;
+    const saved = await saveRunQuestState(snapshot);
+    persistenceInFlight.current = false;
+    if (pendingPersist.current) {
+      setPersistenceState("SAVING");
+      void flushPersistence();
+      return;
+    }
+    if (saved) {
+      setPersistenceState("SAVED");
+      return;
+    }
+    pendingPersist.current = snapshot;
+    setPersistenceState("PENDING");
+    if (!persistTimer.current) {
+      persistTimer.current = setTimeout(() => {
+        persistTimer.current = null;
+        void flushPersistence();
+      }, 5_000);
+    }
+  }, []);
+
+  const commitState = useCallback((nextState: RunQuestState, immediately = false) => {
     stateRef.current = nextState;
     setState(nextState);
-    void saveRunQuestState(nextState);
-  }, []);
+    pendingPersist.current = nextState;
+    setPersistenceState("SAVING");
+    if (immediately) {
+      if (persistTimer.current) clearTimeout(persistTimer.current);
+      persistTimer.current = null;
+      void flushPersistence();
+      return;
+    }
+    if (!persistTimer.current) {
+      persistTimer.current = setTimeout(() => {
+        persistTimer.current = null;
+        void flushPersistence();
+      }, 700);
+    }
+  }, [flushPersistence]);
 
   const refreshCapabilities = useCallback(async () => {
     setCapabilities(await inspectCapabilities());
@@ -117,6 +168,7 @@ export function RunQuestProvider({ children }: PropsWithChildren) {
     }
 
     const nextExpedition = createExpedition(mode);
+    setLatestReport(null);
     activeRef.current = nextExpedition;
     setActiveExpedition(nextExpedition);
 
@@ -186,6 +238,12 @@ export function RunQuestProvider({ children }: PropsWithChildren) {
     if (!active) return;
     clearSubscriptions();
     const endedAt = Date.now();
+    const contract = getDailyContract(endedAt);
+    const contractProgress = getContractProgress(stateRef.current, contract, active, endedAt);
+    const contractCompleted = contractProgress >= contract.target && !isContractClaimed(stateRef.current, contract);
+    const contractRewardXp = contractCompleted ? contract.rewardXp : 0;
+    const totalXpBefore = stateRef.current.profile.totalXp;
+    const totalXpAfter = totalXpBefore + active.xpEarned + contractRewardXp;
     const workout = {
       id: active.id,
       startedAt: active.startedAt,
@@ -195,6 +253,7 @@ export function RunQuestProvider({ children }: PropsWithChildren) {
       steps: active.steps,
       xpEarned: active.xpEarned,
       newTileCount: active.newTileIds.length,
+      contractRewardXp,
       route: active.route,
       rulesetVersion: currentRuleset,
     };
@@ -202,26 +261,36 @@ export function RunQuestProvider({ children }: PropsWithChildren) {
       ...stateRef.current,
       profile: {
         ...stateRef.current.profile,
-        totalXp: stateRef.current.profile.totalXp + active.xpEarned,
-        title: stateRef.current.profile.totalXp + active.xpEarned >= 800 ? "Atlas Pathfinder" : "Neighborhood Scout",
+        totalXp: totalXpAfter,
+        title: resolveTitle(totalXpAfter),
+        completedContractClaims: contractCompleted
+          ? [...stateRef.current.profile.completedContractClaims, contract.claimKey].slice(-366)
+          : stateRef.current.profile.completedContractClaims,
       },
       workouts: [workout, ...stateRef.current.workouts].slice(0, 200),
     };
-    commitState(nextState);
+    commitState(nextState, true);
     activeRef.current = null;
     setActiveExpedition(null);
+    setLatestReport({ workout, contract, contractProgress, contractCompleted, totalXpBefore, totalXpAfter });
   }, [clearSubscriptions, commitState]);
 
   const updateSettings = useCallback((patch: Partial<RunQuestState["settings"]>) => {
     commitState({ ...stateRef.current, settings: { ...stateRef.current.settings, ...patch } });
   }, [commitState]);
 
-  useEffect(() => () => clearSubscriptions(), [clearSubscriptions]);
+  useEffect(() => () => {
+    clearSubscriptions();
+    if (persistTimer.current) clearTimeout(persistTimer.current);
+    void flushPersistence();
+  }, [clearSubscriptions, flushPersistence]);
 
   const value = useMemo<RunQuestContextValue>(() => ({
     hydrated,
     state,
     activeExpedition,
+    latestReport,
+    persistenceState,
     capabilities,
     refreshCapabilities,
     startExpedition,
@@ -229,10 +298,11 @@ export function RunQuestProvider({ children }: PropsWithChildren) {
     resumeExpedition,
     endExpedition,
     recordDemoDiscovery,
+    dismissReport: () => setLatestReport(null),
     setTrackingMode: (trackingMode) => updateSettings({ trackingMode }),
     setHapticsEnabled: (hapticsEnabled) => updateSettings({ hapticsEnabled }),
     setReduceMotion: (reduceMotion) => updateSettings({ reduceMotion }),
-  }), [activeExpedition, capabilities, endExpedition, hydrated, pauseExpedition, recordDemoDiscovery, refreshCapabilities, resumeExpedition, startExpedition, state, updateSettings]);
+  }), [activeExpedition, capabilities, endExpedition, hydrated, latestReport, pauseExpedition, persistenceState, recordDemoDiscovery, refreshCapabilities, resumeExpedition, startExpedition, state, updateSettings]);
 
   return <RunQuestContext.Provider value={value}>{children}</RunQuestContext.Provider>;
 }

@@ -13,7 +13,7 @@ export default function HistoryScreen() {
   const renderItem = ({ item }: { item: WorkoutRecord }) => (
     <Panel style={styles.card}>
       <View style={styles.cardTop}><View><Text style={styles.date}>{formatDate(item.startedAt)}</Text><Text style={styles.mode}>{item.mode === "live" ? "Foreground expedition" : "Local demo expedition"}</Text></View><StatePill state={item.mode === "live" ? "AVAILABLE" : "LIMITED"} label={item.mode.toUpperCase()} /></View>
-      <View style={styles.stats}><Text style={styles.distance}>{formatDistance(item.distanceMeters)}</Text><Text style={styles.xp}>+{item.xpEarned} XP</Text></View>
+      <View style={styles.stats}><Text style={styles.distance}>{formatDistance(item.distanceMeters)}</Text><View style={styles.rewardStack}><Text style={styles.xp}>+{item.xpEarned + item.contractRewardXp} XP</Text>{item.contractRewardXp > 0 ? <Text style={styles.contractXp}>field contract +{item.contractRewardXp}</Text> : null}</View></View>
       <View style={styles.meta}><MaterialIcons name="grid-view" size={15} color={rq.teal} /><Text style={styles.metaText}>{item.newTileCount} new atlas cells · {item.steps > 0 ? `${item.steps} steps` : "distance-led tracking"}</Text></View>
     </Panel>
   );
@@ -46,6 +46,8 @@ const styles = StyleSheet.create({
   stats: { flexDirection: "row", justifyContent: "space-between", alignItems: "baseline" },
   distance: { color: rq.teal, fontSize: 26, fontWeight: "800", letterSpacing: -0.5 },
   xp: { color: rq.gold, fontSize: 14, fontWeight: "900" },
+  rewardStack: { alignItems: "flex-end", gap: 2 },
+  contractXp: { color: rq.teal, fontSize: 10, fontWeight: "800" },
   meta: { flexDirection: "row", alignItems: "center", gap: 7, borderTopWidth: 1, borderTopColor: rq.border, paddingTop: 12 },
   metaText: { flex: 1, color: rq.mist, fontSize: 12, lineHeight: 17, fontWeight: "600" },
   empty: { alignItems: "center", gap: 10, marginTop: 12, paddingVertical: 28 },

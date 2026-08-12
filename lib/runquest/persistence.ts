@@ -19,6 +19,11 @@ export async function loadRunQuestState(): Promise<RunQuestState> {
   }
 }
 
-export async function saveRunQuestState(state: RunQuestState): Promise<void> {
-  await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify({ ...state, version: RUNQUEST_STATE_VERSION }));
+export async function saveRunQuestState(state: RunQuestState): Promise<boolean> {
+  try {
+    await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify({ ...state, version: RUNQUEST_STATE_VERSION }));
+    return true;
+  } catch {
+    return false;
+  }
 }

@@ -8,6 +8,7 @@ import { GeographicMap } from "@/components/runquest/geographic-map";
 import { Metric, Panel, PrimaryButton, rq, SmallButton, StatePill } from "@/components/runquest/primitives";
 import { ScreenContainer } from "@/components/screen-container";
 import { formatDistance, formatDuration } from "@/lib/runquest/format";
+import { formatContractProgress, getContractProgress, getDailyContract, isContractClaimed } from "@/lib/runquest/contracts";
 import { useRunQuest } from "@/lib/runquest/context";
 import { lightFeedback, mediumFeedback, successFeedback } from "@/lib/runquest/feedback";
 
@@ -29,6 +30,9 @@ export default function ExpeditionScreen() {
   const active = activeExpedition;
   const isPaused = active?.status === "paused";
   const duration = useMemo(() => active ? formatDuration(active.startedAt, now) : "0:00", [active, now]);
+  const contract = getDailyContract();
+  const contractProgress = getContractProgress(state, contract, active);
+  const contractClaimed = isContractClaimed(state, contract);
 
   if (!active) {
     return (
@@ -45,7 +49,7 @@ export default function ExpeditionScreen() {
   const handleEnd = async () => {
     successFeedback(state.settings.hapticsEnabled);
     await endExpedition();
-    router.replace("/(tabs)/history");
+    router.replace("/report");
   };
   const handleDemo = () => {
     recordDemoDiscovery();
@@ -77,6 +81,13 @@ export default function ExpeditionScreen() {
           <View style={styles.statusRow}><View style={styles.liveDot} /><Text style={styles.notice}>{active.notice}</Text></View>
         </Panel>
 
+        <Panel style={styles.contractPanel}>
+          <View style={styles.contractTop}><View><Text style={styles.contractEyebrow}>ACTIVE FIELD CONTRACT</Text><Text style={styles.contractTitle}>{contract.title}</Text></View><StatePill state={contractClaimed ? "AVAILABLE" : "LIMITED"} label={contractClaimed ? "CLAIMED" : `${contract.rewardXp} XP`} /></View>
+          <Text style={styles.contractCopy}>{contract.instruction}</Text>
+          <View style={styles.contractTrack}><View style={[styles.contractFill, { width: `${Math.max(5, Math.min(100, contractProgress / contract.target * 100))}%` }]} /></View>
+          <Text style={styles.contractProgress}>{formatContractProgress(contract, contractProgress)}</Text>
+        </Panel>
+
         {active.mode === "demo" ? <PrimaryButton label="Simulate a discovery" icon="add-location-alt" onPress={handleDemo} tone="slate" disabled={isPaused} /> : null}
 
         <View style={styles.controls}>
@@ -105,6 +116,14 @@ const styles = StyleSheet.create({
   statusRow: { flexDirection: "row", gap: 8, alignItems: "center" },
   liveDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: rq.teal },
   notice: { flex: 1, color: rq.mist, fontSize: 12, lineHeight: 17, fontWeight: "600" },
+  contractPanel: { gap: 8 },
+  contractTop: { flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between", gap: 10 },
+  contractEyebrow: { color: rq.cyan, fontSize: 10, letterSpacing: 1, fontWeight: "900" },
+  contractTitle: { color: rq.cloud, fontSize: 15, fontWeight: "900", marginTop: 3 },
+  contractCopy: { color: rq.mist, fontSize: 12, lineHeight: 17, fontWeight: "600" },
+  contractTrack: { height: 7, borderRadius: 4, backgroundColor: rq.midnight, overflow: "hidden" },
+  contractFill: { height: "100%", borderRadius: 4, backgroundColor: rq.teal },
+  contractProgress: { color: rq.cloud, fontSize: 11, fontWeight: "800" },
   controls: { flexDirection: "row", alignItems: "center", gap: 12 },
   controlSpacer: { flex: 1 },
   safety: { color: rq.mist, textAlign: "center", fontSize: 11, lineHeight: 16, paddingHorizontal: 12 },

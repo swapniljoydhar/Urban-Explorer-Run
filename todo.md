@@ -15,3 +15,9 @@
 - [x] Fix web-safe cleanup of active location and sensor subscriptions when an expedition ends
 - [x] Replace the placeholder atlas-only active view with an interactive geographic map and local discovery overlay
 - [x] Add regression tests for subscription cleanup and map fallback behavior
+- [x] Restore and verify the development server after a preview interruption
+- [x] Audit and strengthen the expedition loop, UX clarity, persistence boundaries, and foreseeable failure modes
+- [x] Add strategic objectives, meaningful rewards, and richer post-expedition progression feedback
+- [x] Add safer data validation, rate-limited event handling, and recovery guards without breaking saved state
+- [x] Improve map, atlas, and history presentation for a more immersive game-quality experience
+- [x] Validate the strengthened app against compatibility, performance, and regression limits
