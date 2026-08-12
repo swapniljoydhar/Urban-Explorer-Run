@@ -3,6 +3,7 @@ import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { useRouter } from "expo-router";
 
 import { AtlasGrid } from "@/components/runquest/atlas-grid";
+import { ContractProgress } from "@/components/runquest/contract-progress";
 import { LoadingState, Metric, Panel, PrimaryButton, rq, StatePill } from "@/components/runquest/primitives";
 import { ScreenContainer } from "@/components/screen-container";
 import { levelProgress } from "@/lib/runquest/engine";
@@ -63,8 +64,7 @@ export default function HomeScreen() {
             <Text style={styles.objectiveBody}>{contract.instruction}</Text>
           </View>
           </View>
-          <View style={styles.contractTrack}><View style={[styles.contractFill, { width: `${Math.max(5, Math.min(100, contractProgress / contract.target * 100))}%` }]} /></View>
-          <Text style={styles.contractProgress}>{formatContractProgress(contract, contractProgress)}{contractClaimed ? " · reward secured" : ""}</Text>
+          <ContractProgress progress={contractProgress} target={contract.target} label={`${formatContractProgress(contract, contractProgress)}${contractClaimed ? " · reward secured" : ""}`} reduceMotion={state.settings.reduceMotion} claimed={contractClaimed} />
         </Panel>
 
         <PrimaryButton label="Start expedition" icon="play-arrow" onPress={handleStart} />
@@ -106,9 +106,6 @@ const styles = StyleSheet.create({
   sectionLabel: { color: rq.mist, fontSize: 10, fontWeight: "800", letterSpacing: 1.05 },
   objectiveTitle: { color: rq.cloud, fontSize: 16, lineHeight: 21, fontWeight: "800" },
   objectiveBody: { color: rq.mist, fontSize: 13, lineHeight: 19, fontWeight: "500" },
-  contractTrack: { height: 7, borderRadius: 4, backgroundColor: rq.midnight, overflow: "hidden" },
-  contractFill: { height: "100%", borderRadius: 4, backgroundColor: rq.teal },
-  contractProgress: { color: rq.cloud, fontSize: 11, fontWeight: "800" },
   statsPanel: { gap: 15 },
   metricRow: { flexDirection: "row", gap: 10 },
   ledgerRow: { flexDirection: "row", alignItems: "center", gap: 7, borderTopWidth: 1, borderTopColor: rq.border, paddingTop: 12 },

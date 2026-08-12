@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { getDailyContract } from "@/lib/runquest/contracts";
 import { evaluateNewAchievements } from "@/lib/runquest/achievements";
+import { createOfflineRegion, offlineTileCoordinates } from "@/lib/runquest/offline-regions";
 import { calculateLevel, calculateXp, encodeHexGridV1, processLocationSample } from "@/lib/runquest/engine";
 import { migrateRunQuestState } from "@/lib/runquest/migration";
 import { safelyRemoveSubscription } from "@/lib/runquest/subscriptions";
@@ -129,6 +130,19 @@ describe("RunQuest compatibility-safe engine", () => {
       profile: { ...baseline.profile, achievements: [{ id: "FIRST_MARK" as const, unlockedAt: 1 }] },
     };
     expect(evaluateNewAchievements(withFirstMark, active, 100, false)).not.toContain("FIRST_MARK");
+  });
+
+  it("creates a deterministic, bounded offline Atlas pack around a coordinate", () => {
+    const region = createOfflineRegion(37.7749, -122.4194, 1_000);
+    expect(region.id).toMatch(/^atlas-14-\d+-\d+$/);
+    expect(region.tileCount).toBe(9);
+    expect(offlineTileCoordinates(region)).toHaveLength(9);
+  });
+
+  it("migrates legacy state with no offline packs and rejects oversized pack lists", () => {
+    expect(migrateRunQuestState({}).offlineRegions).toEqual([]);
+    const oversized = Array.from({ length: 5 }, (_, index) => ({ id: `atlas-14-${index}-${index}`, latitude: 1, longitude: 1, zoom: 14, tileCount: 9, downloadedAt: 1, provider: "OpenStreetMap" }));
+    expect(migrateRunQuestState({ offlineRegions: oversized }).offlineRegions).toEqual([]);
   });
 
   it("never calls a browser location subscription removal path during cleanup", () => {

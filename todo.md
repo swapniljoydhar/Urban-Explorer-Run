@@ -27,3 +27,6 @@
 - [x] Measure bundle composition and memory-relevant runtime indicators, then apply evidence-based optimizations
 - [x] Add a durable achievement system that complements rather than duplicates daily Field Contracts
 - [x] Validate Android compatibility paths, achievement persistence, bundle output, and performance safeguards
+- [x] Add reduced-motion-safe interactive Field Contract progress and completion feedback
+- [x] Add bounded local offline map-region package preparation, download, removal, and state reporting
+- [x] Validate offline package persistence, map fallbacks, and contract completion feedback without exceeding resource limits

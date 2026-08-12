@@ -1,7 +1,8 @@
-import type { RoutePoint, TileRecord } from "@/lib/runquest/types";
+import type { OfflineMapRegion, RoutePoint, TileRecord } from "@/lib/runquest/types";
 
 export type GeographicMapProps = {
   route: RoutePoint[];
   tiles: TileRecord[];
   currentPoint?: RoutePoint | null;
+  offlineRegion?: OfflineMapRegion | null;
 };

@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useRef } from "react";
-import { StyleSheet, View } from "react-native";
-import MapView, { Circle, Marker, Polyline, type Region } from "react-native-maps";
+import { Platform, StyleSheet, View } from "react-native";
+import MapView, { Circle, LocalTile, Marker, Polyline, type Region } from "react-native-maps";
 
 import type { GeographicMapProps } from "@/components/runquest/geographic-map.types";
 import { rq } from "@/components/runquest/primitives";
+import { offlineTilePathTemplate } from "@/lib/runquest/offline-packages";
 
 const DEFAULT_REGION: Region = {
   latitude: 37.7749,
@@ -16,12 +17,13 @@ function toRegion(latitude: number, longitude: number): Region {
   return { latitude, longitude, latitudeDelta: 0.012, longitudeDelta: 0.012 };
 }
 
-export function GeographicMap({ route, tiles, currentPoint }: GeographicMapProps) {
+export function GeographicMap({ route, tiles, currentPoint, offlineRegion }: GeographicMapProps) {
   const mapRef = useRef<MapView | null>(null);
   const initialPoint = route[0] ?? currentPoint;
   const initialRegion = initialPoint ? toRegion(initialPoint.latitude, initialPoint.longitude) : DEFAULT_REGION;
   const mapKey = initialPoint ? `map-${initialPoint.timestamp}` : "map-fallback";
   const atlasTiles = useMemo(() => tiles.filter((tile) => tile.latitude !== undefined && tile.longitude !== undefined).slice(-80), [tiles]);
+  const offlineTemplate = offlineRegion ? offlineTilePathTemplate(offlineRegion) : null;
 
   useEffect(() => {
     if (!currentPoint || route.length > 1) return;
@@ -35,7 +37,7 @@ export function GeographicMap({ route, tiles, currentPoint }: GeographicMapProps
         key={mapKey}
         style={styles.map}
         initialRegion={initialRegion}
-        mapType="standard"
+        mapType={offlineTemplate && Platform.OS === "android" ? "none" : "standard"}
         showsCompass
         showsScale
         rotateEnabled={false}
@@ -43,6 +45,7 @@ export function GeographicMap({ route, tiles, currentPoint }: GeographicMapProps
         toolbarEnabled={false}
         accessibilityLabel="Interactive geographic expedition map"
       >
+        {offlineTemplate ? <LocalTile pathTemplate={offlineTemplate} tileSize={256} zIndex={0} /> : null}
         {atlasTiles.map((tile) => (
           <Circle
             key={tile.id}

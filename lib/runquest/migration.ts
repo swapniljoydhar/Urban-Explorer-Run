@@ -50,6 +50,15 @@ const persistedStateSchema = z.object({
     hapticsEnabled: z.boolean().optional(),
     reduceMotion: z.boolean().optional(),
   }).optional(),
+  offlineRegions: z.array(z.object({
+    id: z.string().regex(/^atlas-\d+-\d+-\d+$/),
+    latitude: finiteNumber.min(-85.05112878).max(85.05112878),
+    longitude: finiteNumber.min(-180).max(180),
+    zoom: z.number().int().min(10).max(17),
+    tileCount: z.number().int().min(1).max(25),
+    downloadedAt: finiteNumber.nonnegative(),
+    provider: z.literal("OpenStreetMap"),
+  })).max(4).optional(),
 }).passthrough();
 
 export function migrateRunQuestState(value: unknown): RunQuestState {
@@ -63,5 +72,6 @@ export function migrateRunQuestState(value: unknown): RunQuestState {
     tiles: candidate.tiles ?? {},
     workouts: Array.isArray(candidate.workouts) ? candidate.workouts.slice(0, 200).map((workout) => ({ ...workout, contractRewardXp: workout.contractRewardXp ?? 0 })) : [],
     settings: { ...DEFAULT_RUNQUEST_STATE.settings, ...candidate.settings },
+    offlineRegions: candidate.offlineRegions ?? [],
   };
 }

@@ -5,6 +5,7 @@ import { useKeepAwake } from "expo-keep-awake";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 
 import { GeographicMap } from "@/components/runquest/geographic-map";
+import { ContractProgress } from "@/components/runquest/contract-progress";
 import { Metric, Panel, PrimaryButton, rq, SmallButton, StatePill } from "@/components/runquest/primitives";
 import { ScreenContainer } from "@/components/screen-container";
 import { formatDistance, formatDuration } from "@/lib/runquest/format";
@@ -67,7 +68,7 @@ export default function ExpeditionScreen() {
         </View>
 
         <View style={styles.mapWrap}>
-          <GeographicMap route={active.route} tiles={Object.values(state.tiles)} currentPoint={active.lastPoint} />
+          <GeographicMap route={active.route} tiles={Object.values(state.tiles)} currentPoint={active.lastPoint} offlineRegion={state.offlineRegions[0] ?? null} />
           <View style={styles.mapOverlay}><Text style={styles.mapEyebrow}>GEOGRAPHIC EXPEDITION MAP</Text><Text style={styles.mapTitle}>Your route and atlas cells appear here.</Text></View>
         </View>
 
@@ -84,8 +85,7 @@ export default function ExpeditionScreen() {
         <Panel style={styles.contractPanel}>
           <View style={styles.contractTop}><View><Text style={styles.contractEyebrow}>ACTIVE FIELD CONTRACT</Text><Text style={styles.contractTitle}>{contract.title}</Text></View><StatePill state={contractClaimed ? "AVAILABLE" : "LIMITED"} label={contractClaimed ? "CLAIMED" : `${contract.rewardXp} XP`} /></View>
           <Text style={styles.contractCopy}>{contract.instruction}</Text>
-          <View style={styles.contractTrack}><View style={[styles.contractFill, { width: `${Math.max(5, Math.min(100, contractProgress / contract.target * 100))}%` }]} /></View>
-          <Text style={styles.contractProgress}>{formatContractProgress(contract, contractProgress)}</Text>
+          <ContractProgress progress={contractProgress} target={contract.target} label={formatContractProgress(contract, contractProgress)} reduceMotion={state.settings.reduceMotion} claimed={contractClaimed} compact />
         </Panel>
 
         {active.mode === "demo" ? <PrimaryButton label="Simulate a discovery" icon="add-location-alt" onPress={handleDemo} tone="slate" disabled={isPaused} /> : null}
@@ -121,9 +121,6 @@ const styles = StyleSheet.create({
   contractEyebrow: { color: rq.cyan, fontSize: 10, letterSpacing: 1, fontWeight: "900" },
   contractTitle: { color: rq.cloud, fontSize: 15, fontWeight: "900", marginTop: 3 },
   contractCopy: { color: rq.mist, fontSize: 12, lineHeight: 17, fontWeight: "600" },
-  contractTrack: { height: 7, borderRadius: 4, backgroundColor: rq.midnight, overflow: "hidden" },
-  contractFill: { height: "100%", borderRadius: 4, backgroundColor: rq.teal },
-  contractProgress: { color: rq.cloud, fontSize: 11, fontWeight: "800" },
   controls: { flexDirection: "row", alignItems: "center", gap: 12 },
   controlSpacer: { flex: 1 },
   safety: { color: rq.mist, textAlign: "center", fontSize: 11, lineHeight: 16, paddingHorizontal: 12 },

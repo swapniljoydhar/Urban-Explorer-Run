@@ -9,6 +9,7 @@ import { getContractProgress, getDailyContract, isContractClaimed } from "@/lib/
 import { createDemoPoint, createWorkoutId, currentRuleset, processLocationSample, resolveTitle } from "@/lib/runquest/engine";
 import { DEFAULT_RUNQUEST_STATE, loadRunQuestState, saveRunQuestState } from "@/lib/runquest/persistence";
 import { safelyRemoveSubscription } from "@/lib/runquest/subscriptions";
+import { downloadOfflineRegion, offlineRegionExists, removeOfflineRegion } from "@/lib/runquest/offline-packages";
 import {
   type ActiveExpedition,
   type CapabilitySnapshot,
@@ -16,6 +17,7 @@ import {
   type ExpeditionMode,
   type RoutePoint,
   type RunQuestState,
+  type OfflineMapRegion,
   type TrackingMode,
 } from "@/lib/runquest/types";
 
@@ -36,6 +38,9 @@ type RunQuestContextValue = {
   setTrackingMode: (mode: TrackingMode) => void;
   setHapticsEnabled: (enabled: boolean) => void;
   setReduceMotion: (enabled: boolean) => void;
+  offlineAction: { state: "IDLE" | "DOWNLOADING" | "ERROR"; completed: number; total: number; message: string | null };
+  downloadCurrentOfflineRegion: () => Promise<void>;
+  removeOfflineRegion: (id: string) => Promise<void>;
 };
 
 const RunQuestContext = createContext<RunQuestContextValue | null>(null);
@@ -66,6 +71,7 @@ export function RunQuestProvider({ children }: PropsWithChildren) {
   const [latestReport, setLatestReport] = useState<ExpeditionReport | null>(null);
   const [persistenceState, setPersistenceState] = useState<"SAVED" | "SAVING" | "PENDING">("SAVED");
   const [capabilities, setCapabilities] = useState<CapabilitySnapshot | null>(null);
+  const [offlineAction, setOfflineAction] = useState<{ state: "IDLE" | "DOWNLOADING" | "ERROR"; completed: number; total: number; message: string | null }>({ state: "IDLE", completed: 0, total: 0, message: null });
   const stateRef = useRef(state);
   const activeRef = useRef<ActiveExpedition | null>(null);
   const locationSubscription = useRef<Location.LocationSubscription | null>(null);
@@ -75,9 +81,12 @@ export function RunQuestProvider({ children }: PropsWithChildren) {
   const persistenceInFlight = useRef(false);
 
   useEffect(() => {
-    void Promise.all([loadRunQuestState(), inspectCapabilities()]).then(([persistedState, nextCapabilities]) => {
-      stateRef.current = persistedState;
-      setState(persistedState);
+    void Promise.all([loadRunQuestState(), inspectCapabilities()]).then(async ([persistedState, nextCapabilities]) => {
+      const confirmedRegions = (await Promise.all(persistedState.offlineRegions.map(async (region) => (await offlineRegionExists(region)) ? region : null))).filter((region): region is OfflineMapRegion => region !== null);
+      const hydratedState = confirmedRegions.length === persistedState.offlineRegions.length ? persistedState : { ...persistedState, offlineRegions: confirmedRegions };
+      stateRef.current = hydratedState;
+      setState(hydratedState);
+      if (hydratedState !== persistedState) void saveRunQuestState(hydratedState);
       setCapabilities(nextCapabilities);
       setHydrated(true);
     });
@@ -284,6 +293,37 @@ export function RunQuestProvider({ children }: PropsWithChildren) {
     commitState({ ...stateRef.current, settings: { ...stateRef.current.settings, ...patch } });
   }, [commitState]);
 
+  const downloadCurrentOfflineRegion = useCallback(async () => {
+    const latestPoint = activeRef.current?.lastPoint ?? stateRef.current.workouts[0]?.route.at(-1) ?? Object.values(stateRef.current.tiles).find((tile) => tile.latitude !== undefined && tile.longitude !== undefined);
+    if (!latestPoint || latestPoint.latitude === undefined || latestPoint.longitude === undefined) {
+      setOfflineAction({ state: "ERROR", completed: 0, total: 0, message: "Record an expedition point first so RunQuest can prepare the correct local Atlas area." });
+      return;
+    }
+    const latitude = latestPoint.latitude;
+    const longitude = latestPoint.longitude;
+    setOfflineAction({ state: "DOWNLOADING", completed: 0, total: 9, message: "Preparing a compact Atlas pack…" });
+    try {
+      const region = await downloadOfflineRegion(latitude, longitude, (completed, total) => setOfflineAction({ state: "DOWNLOADING", completed, total, message: "Saving map tiles locally…" }));
+      const nextRegions = [region, ...stateRef.current.offlineRegions.filter((existing) => existing.id !== region.id)].slice(0, 4);
+      commitState({ ...stateRef.current, offlineRegions: nextRegions }, true);
+      setOfflineAction({ state: "IDLE", completed: region.tileCount, total: region.tileCount, message: "Atlas pack ready for offline use." });
+    } catch (error) {
+      setOfflineAction({ state: "ERROR", completed: 0, total: 0, message: error instanceof Error ? error.message : "The Atlas pack could not be prepared." });
+    }
+  }, [commitState]);
+
+  const removeOfflineMapRegion = useCallback(async (id: string) => {
+    const region = stateRef.current.offlineRegions.find((candidate) => candidate.id === id);
+    if (!region) return;
+    try {
+      await removeOfflineRegion(region);
+      commitState({ ...stateRef.current, offlineRegions: stateRef.current.offlineRegions.filter((candidate) => candidate.id !== id) }, true);
+      setOfflineAction({ state: "IDLE", completed: 0, total: 0, message: "Offline Atlas pack removed." });
+    } catch {
+      setOfflineAction({ state: "ERROR", completed: 0, total: 0, message: "The Atlas pack could not be removed. Try again when storage is available." });
+    }
+  }, [commitState]);
+
   useEffect(() => () => {
     clearSubscriptions();
     if (persistTimer.current) clearTimeout(persistTimer.current);
@@ -307,7 +347,10 @@ export function RunQuestProvider({ children }: PropsWithChildren) {
     setTrackingMode: (trackingMode) => updateSettings({ trackingMode }),
     setHapticsEnabled: (hapticsEnabled) => updateSettings({ hapticsEnabled }),
     setReduceMotion: (reduceMotion) => updateSettings({ reduceMotion }),
-  }), [activeExpedition, capabilities, endExpedition, hydrated, latestReport, pauseExpedition, persistenceState, recordDemoDiscovery, refreshCapabilities, resumeExpedition, startExpedition, state, updateSettings]);
+    offlineAction,
+    downloadCurrentOfflineRegion,
+    removeOfflineRegion: removeOfflineMapRegion,
+  }), [activeExpedition, capabilities, downloadCurrentOfflineRegion, endExpedition, hydrated, latestReport, offlineAction, pauseExpedition, persistenceState, recordDemoDiscovery, refreshCapabilities, removeOfflineMapRegion, resumeExpedition, startExpedition, state, updateSettings]);
 
   return <RunQuestContext.Provider value={value}>{children}</RunQuestContext.Provider>;
 }

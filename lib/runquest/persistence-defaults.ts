@@ -6,4 +6,5 @@ export const DEFAULT_RUNQUEST_STATE: RunQuestState = {
   tiles: {},
   workouts: [],
   settings: { trackingMode: "balanced", hapticsEnabled: true, reduceMotion: false },
+  offlineRegions: [],
 };

@@ -6,13 +6,14 @@ RunQuest is an Android-first, local-first exploration fitness game. A run or wal
 
 | Area | Current behavior |
 |---|---|
-| Expedition loop | A user can start an expedition, pause or resume it, work toward a rotating Field Contract, finish it, and receive a local expedition report. |
+| Expedition loop | A user can start an expedition, pause or resume it, work toward a rotating Field Contract with motion-safe progress feedback, finish it, and receive a local expedition report. |
 | Foreground tracking | Foreground location is requested only when a quest starts. If unavailable, the app uses a clearly labeled local demo expedition. |
 | Cartography | A deterministic, versioned hex-grid identity records discovery, revisit mapping, and mastery; a tile earns only one revisit credit per expedition. |
 | Progression | Distance, newly discovered cells, and completed daily Field Contracts earn versioned XP. The level curve and title ladder are deterministic. |
 | Persistence | Local state is schema-validated before migration, batched during active play, and automatically retried when local storage temporarily fails. |
 | Compatibility | Device capabilities are categorized as Available, Limited, Unavailable, or Blocked by User. |
 | Performance | Route history is bounded in memory, history uses `FlatList`, and no server, account, cloud sync, or background worker is required for the core loop. |
+| Offline Atlas | Users can save up to four bounded 3 × 3 local tile packs around recorded expedition points, remove them later, and continue seeing the saved local base plus route and discovery overlays on native devices without connectivity. |
 
 ## Compatibility promise
 
@@ -77,4 +78,4 @@ Every future change should use a small branch, run `pnpm check`, `pnpm test`, an
 
 ## Deliberate next steps
 
-The first production expansion should be **offline map downloads**, followed by optional background expedition tracking. Do not add sign-in, cloud sync, social feeds, real-time multiplayer, or data-heavy live tiles until the local core has been tested on a range of Android API levels and lower-memory devices.
+The next production expansion should be optional background expedition tracking, followed by a licensed regional map provider for larger offline packs. Do not add sign-in, cloud sync, social feeds, real-time multiplayer, or data-heavy live tiles until the local core has been tested on a range of Android API levels and lower-memory devices.

@@ -2,6 +2,7 @@ import { ScrollView, StyleSheet, Text, View } from "react-native";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 
 import { LoadingState, Panel, rq } from "@/components/runquest/primitives";
+import { ContractProgress } from "@/components/runquest/contract-progress";
 import { ScreenContainer } from "@/components/screen-container";
 import { calculateLevel, levelProgress } from "@/lib/runquest/engine";
 import { useRunQuest } from "@/lib/runquest/context";
@@ -39,8 +40,8 @@ export default function ProgressScreen() {
           <Text style={styles.contractEyebrow}>TODAY’S FIELD CONTRACT</Text>
           <Text style={styles.contractTitle}>{contract.title}</Text>
           <Text style={styles.contractBody}>{contract.instruction}</Text>
-          <View style={styles.contractTrack}><View style={[styles.contractFill, { width: `${Math.max(5, Math.min(100, contractProgress / contract.target * 100))}%` }]} /></View>
-          <View style={styles.contractFooter}><Text style={styles.contractProgress}>{formatContractProgress(contract, contractProgress)}</Text><Text style={styles.contractReward}>{contractClaimed ? "Reward secured" : `+${contract.rewardXp} XP`}</Text></View>
+          <ContractProgress progress={contractProgress} target={contract.target} label={formatContractProgress(contract, contractProgress)} reduceMotion={state.settings.reduceMotion} claimed={contractClaimed} />
+          <Text style={styles.contractReward}>{contractClaimed ? "Reward secured" : `+${contract.rewardXp} XP`}</Text>
         </Panel>
         <Panel style={styles.rankPanel}>
           <Text style={styles.rankEyebrow}>TITLE LADDER</Text>
@@ -79,10 +80,6 @@ const styles = StyleSheet.create({
   contractEyebrow: { color: rq.cyan, fontSize: 10, letterSpacing: 1, fontWeight: "900" },
   contractTitle: { color: rq.cloud, fontSize: 17, fontWeight: "900" },
   contractBody: { color: rq.mist, fontSize: 13, lineHeight: 18, fontWeight: "600" },
-  contractTrack: { height: 8, borderRadius: 4, overflow: "hidden", backgroundColor: rq.midnight },
-  contractFill: { height: "100%", borderRadius: 4, backgroundColor: rq.teal },
-  contractFooter: { flexDirection: "row", justifyContent: "space-between", gap: 10 },
-  contractProgress: { color: rq.cloud, fontSize: 12, fontWeight: "800" },
   contractReward: { color: rq.gold, fontSize: 12, fontWeight: "900" },
   rankPanel: { gap: 6 },
   rankEyebrow: { color: rq.gold, fontSize: 10, letterSpacing: 1, fontWeight: "900" },

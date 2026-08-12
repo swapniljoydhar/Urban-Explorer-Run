@@ -82,12 +82,23 @@ export type RunQuestSettings = {
   reduceMotion: boolean;
 };
 
+export type OfflineMapRegion = {
+  id: string;
+  latitude: number;
+  longitude: number;
+  zoom: number;
+  tileCount: number;
+  downloadedAt: number;
+  provider: "OpenStreetMap";
+};
+
 export type RunQuestState = {
   version: typeof RUNQUEST_STATE_VERSION;
   profile: PlayerProfile;
   tiles: Record<string, TileRecord>;
   workouts: WorkoutRecord[];
   settings: RunQuestSettings;
+  offlineRegions: OfflineMapRegion[];
 };
 
 export type ActiveExpedition = {
