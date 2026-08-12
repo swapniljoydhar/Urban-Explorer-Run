@@ -1,5 +1,4 @@
-import { Platform } from "react-native";
-import * as Location from "expo-location";
+import { PermissionsAndroid, Platform } from "react-native";
 import { Pedometer } from "expo-sensors";
 
 import type { CapabilitySnapshot, RunQuestCapability } from "@/lib/runquest/types";
@@ -26,17 +25,15 @@ export async function inspectCapabilities(): Promise<CapabilitySnapshot> {
   }
 
   try {
-    const [permission, servicesEnabled, pedometerAvailable] = await Promise.all([
-      Location.getForegroundPermissionsAsync(),
-      Location.hasServicesEnabledAsync(),
+    const [fineGranted, coarseGranted, pedometerAvailable] = await Promise.all([
+      PermissionsAndroid.check(PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION),
+      PermissionsAndroid.check(PermissionsAndroid.PERMISSIONS.ACCESS_COARSE_LOCATION),
       Pedometer.isAvailableAsync(),
     ]);
 
-    const location = permission.status !== "granted"
+    const location = !(fineGranted || coarseGranted)
       ? blocked("Foreground location", "Allow location when you start an expedition for live tracking. Demo mode is always available.")
-      : !servicesEnabled
-        ? limited("Foreground location", "Location services are turned off. Enable them for live tracking.")
-        : available("Foreground location", "Live foreground tracking is ready for an expedition.");
+      : available("Foreground location", fineGranted ? "Live foreground tracking is ready with precise location." : "Approximate location is available; discovery precision may be reduced.");
 
     const steps = pedometerAvailable
       ? available("Step sensor", "Hardware step updates can supplement distance tracking while the app is open.")

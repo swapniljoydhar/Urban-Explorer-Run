@@ -1,6 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type PropsWithChildren } from "react";
 import { Platform } from "react-native";
-import * as Location from "expo-location";
 import { Pedometer } from "expo-sensors";
 
 import { inspectCapabilities } from "@/lib/runquest/capabilities";
@@ -9,6 +8,7 @@ import { getContractProgress, getDailyContract, isContractClaimed } from "@/lib/
 import { createDemoPoint, createWorkoutId, currentRuleset, processLocationSample, resolveTitle } from "@/lib/runquest/engine";
 import { DEFAULT_RUNQUEST_STATE, loadRunQuestState, saveRunQuestState } from "@/lib/runquest/persistence";
 import { safelyRemoveSubscription } from "@/lib/runquest/subscriptions";
+import { openLocation, type OpenLocationListener } from "@/lib/runquest/open-location";
 import { downloadOfflineRegion, offlineRegionExists, removeOfflineRegion } from "@/lib/runquest/offline-packages";
 import {
   type ActiveExpedition,
@@ -74,7 +74,7 @@ export function RunQuestProvider({ children }: PropsWithChildren) {
   const [offlineAction, setOfflineAction] = useState<{ state: "IDLE" | "DOWNLOADING" | "ERROR"; completed: number; total: number; message: string | null }>({ state: "IDLE", completed: 0, total: 0, message: null });
   const stateRef = useRef(state);
   const activeRef = useRef<ActiveExpedition | null>(null);
-  const locationSubscription = useRef<Location.LocationSubscription | null>(null);
+  const locationListener = useRef<OpenLocationListener | null>(null);
   const pedometerSubscription = useRef<{ remove: () => void } | null>(null);
   const pendingPersist = useRef<RunQuestState | null>(null);
   const persistTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -143,8 +143,8 @@ export function RunQuestProvider({ children }: PropsWithChildren) {
   }, []);
 
   const clearSubscriptions = useCallback(() => {
-    safelyRemoveSubscription(locationSubscription.current, Platform.OS);
-    locationSubscription.current = null;
+    if (locationListener.current) openLocation.removeListener(locationListener.current);
+    locationListener.current = null;
     safelyRemoveSubscription(pedometerSubscription.current, Platform.OS);
     pedometerSubscription.current = null;
   }, []);
@@ -168,9 +168,8 @@ export function RunQuestProvider({ children }: PropsWithChildren) {
       if (Platform.OS === "web") {
         throw new Error("Web preview uses demo expeditions to avoid unsupported location subscription cleanup.");
       }
-      const permission = await Location.requestForegroundPermissionsAsync();
-      const servicesEnabled = permission.status === "granted" && await Location.hasServicesEnabledAsync();
-      if (servicesEnabled) {
+      const permissionGranted = await openLocation.requestPermissions();
+      if (permissionGranted) {
         mode = "live";
       }
     } catch {
@@ -184,20 +183,18 @@ export function RunQuestProvider({ children }: PropsWithChildren) {
 
     if (mode === "live") {
       const preference = stateRef.current.settings.trackingMode;
-      const options = preference === "precision"
-        ? { accuracy: Location.Accuracy.High, timeInterval: 2_500, distanceInterval: 5 }
-        : preference === "battery-saver"
-          ? { accuracy: Location.Accuracy.Balanced, timeInterval: 8_000, distanceInterval: 15 }
-          : { accuracy: Location.Accuracy.Balanced, timeInterval: 4_000, distanceInterval: 8 };
-
-      locationSubscription.current = await Location.watchPositionAsync(options, (location) => {
+      const minimumDisplacement = preference === "precision" ? 5 : preference === "battery-saver" ? 15 : 8;
+      openLocation.setMinDisplacement(minimumDisplacement);
+      const listener: OpenLocationListener = (location) => {
         applyPoint({
           latitude: location.coords.latitude,
           longitude: location.coords.longitude,
           timestamp: location.timestamp,
           accuracy: location.coords.accuracy,
         });
-      });
+      };
+      locationListener.current = listener;
+      openLocation.addListener(listener);
 
       try {
         const pedometerAvailable = await Pedometer.isAvailableAsync();

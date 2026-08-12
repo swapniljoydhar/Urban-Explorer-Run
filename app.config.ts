@@ -84,17 +84,17 @@ const config: ExpoConfig = {
     favicon: "./assets/images/favicon.png",
   },
   plugins: [
+    [
+      "@maplibre/maplibre-react-native",
+      {
+        android: {
+          locationEngine: "default",
+        },
+      },
+    ],
     "expo-font",
     "expo-web-browser",
     "expo-router",
-    [
-      "expo-location",
-      {
-        locationWhenInUsePermission: "Allow $(PRODUCT_NAME) to record your active expedition and reveal your local atlas.",
-        isAndroidBackgroundLocationEnabled: false,
-        isAndroidForegroundServiceEnabled: false,
-      },
-    ],
     [
       "expo-splash-screen",
       {

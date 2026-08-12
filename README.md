@@ -7,13 +7,14 @@ RunQuest is an Android-first, local-first exploration fitness game. A run or wal
 | Area | Current behavior |
 |---|---|
 | Expedition loop | A user can start an expedition, pause or resume it, work toward a rotating Field Contract with motion-safe progress feedback, finish it, and receive a local expedition report. |
-| Foreground tracking | Foreground location is requested only when a quest starts. If unavailable, the app uses a clearly labeled local demo expedition. |
+| Foreground tracking | Foreground location is requested only when a quest starts through MapLibre’s F-Droid-compatible Android location engine. If unavailable, the app uses a clearly labeled local demo expedition. |
 | Cartography | A deterministic, versioned hex-grid identity records discovery, revisit mapping, and mastery; a tile earns only one revisit credit per expedition. |
 | Progression | Distance, newly discovered cells, and completed daily Field Contracts earn versioned XP. The level curve and title ladder are deterministic. |
 | Persistence | Local state is schema-validated before migration, batched during active play, and automatically retried when local storage temporarily fails. |
 | Compatibility | Device capabilities are categorized as Available, Limited, Unavailable, or Blocked by User. |
 | Performance | Route history is bounded in memory, history uses `FlatList`, and no server, account, cloud sync, or background worker is required for the core loop. |
 | Offline Atlas | Users can save up to four bounded 3 × 3 local tile packs around recorded expedition points, remove them later, and continue seeing the saved local base plus route and discovery overlays on native devices without connectivity. |
+| Open-source map stack | Android maps use MapLibre Native with OpenStreetMap attribution; the project does not bundle Google Maps, Play Services location, or Firebase. |
 
 ## Compatibility promise
 

@@ -22,9 +22,9 @@ export function offlineTileCachePath(region: OfflineMapRegion): string | null {
   return regionDirectory(region);
 }
 
-export function offlineTilePathTemplate(region: OfflineMapRegion): string | null {
+export function offlineTileUrlTemplate(region: OfflineMapRegion): string | null {
   const directory = offlineTileCachePath(region);
-  return directory ? `${directory.replace(/^file:\/\//, "")}{z}/{x}/{y}.png` : null;
+  return directory ? `${directory}{z}/{x}/{y}.png` : null;
 }
 
 export async function offlineRegionExists(region: OfflineMapRegion): Promise<boolean> {

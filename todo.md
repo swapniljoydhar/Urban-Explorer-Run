@@ -30,3 +30,6 @@
 - [x] Add reduced-motion-safe interactive Field Contract progress and completion feedback
 - [x] Add bounded local offline map-region package preparation, download, removal, and state reporting
 - [x] Validate offline package persistence, map fallbacks, and contract completion feedback without exceeding resource limits
+- [x] Audit and remove Google-backed map, SDK, and build assumptions from the Android app
+- [x] Replace native mapping with an open-source renderer and preserve offline Atlas package behavior
+- [x] Validate the Google-free Android build path and document any device-level Google components outside app control
