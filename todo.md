@@ -55,3 +55,8 @@ This strategy exploration is design-only; do not modify application code, depend
 - [x] Run pnpm check, pnpm test, pnpm lint, and targeted offline-provider/Settings regression validation before checkpoint
 
 Provider integration remains subject to evidence-based validation; no implementation should use public OSM raster tiles for offline prefetch.
+- [ ] Reconcile the newly attached full project brief against the current Expo/React Native RunQuest workspace and document applicable versus unrelated native Kotlin/JNI requirements
+- [ ] Produce an updated gap matrix for MapLibre markers, offline archives/provider configuration, sensor fusion, routing, persistence, performance, UX, accessibility, cleanup, and validation
+- [ ] Confirm the next implementation scope with the user before making further changes beyond the current provider Settings checkpoint
+
+The attached native-audio, H3, WorkManager, Kotlin/JNI, Retrofit, Hilt, and Gradle instructions must not be imported into RunQuest unless a current workspace audit proves an equivalent subsystem exists.
