@@ -5,6 +5,7 @@ import { evaluateNewAchievements } from "@/lib/runquest/achievements";
 import { createOfflineRegion, offlineTileCoordinates } from "@/lib/runquest/offline-regions";
 import { calculateLevel, calculateXp, encodeHexGridV1, processLocationSample } from "@/lib/runquest/engine";
 import { migrateRunQuestState } from "@/lib/runquest/migration";
+import { normalizeMapStyleUrl, OPENFREEMAP_STYLE_URL } from "@/lib/runquest/map-providers";
 import { safelyRemoveSubscription } from "@/lib/runquest/subscriptions";
 import type { ActiveExpedition, RoutePoint } from "@/lib/runquest/types";
 
@@ -99,6 +100,18 @@ describe("RunQuest compatibility-safe engine", () => {
     expect(migrated.settings.hapticsEnabled).toBe(false);
     expect(migrated.settings.trackingMode).toBe("balanced");
     expect(migrated.workouts).toEqual([]);
+  });
+
+  it("defaults legacy settings to the OpenFreeMap style without changing saved game data", () => {
+    const migrated = migrateRunQuestState({ profile: { totalXp: 25 } });
+    expect(migrated.settings.mapProvider).toBe("OpenFreeMap");
+    expect(migrated.settings.mapStyleUrl).toBe(OPENFREEMAP_STYLE_URL);
+  });
+
+  it("accepts only bounded HTTPS map style URLs", () => {
+    expect(normalizeMapStyleUrl(OPENFREEMAP_STYLE_URL)).toBe(OPENFREEMAP_STYLE_URL);
+    expect(normalizeMapStyleUrl("http://example.com/style.json")).toBeNull();
+    expect(normalizeMapStyleUrl("not a url")).toBeNull();
   });
 
   it("rejects malformed persisted values instead of accepting unsafe numeric data", () => {

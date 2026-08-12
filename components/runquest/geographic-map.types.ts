@@ -5,4 +5,5 @@ export type GeographicMapProps = {
   tiles: TileRecord[];
   currentPoint?: RoutePoint | null;
   offlineRegion?: OfflineMapRegion | null;
+  mapStyleUrl?: string;
 };

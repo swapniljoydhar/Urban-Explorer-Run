@@ -1,19 +1,36 @@
-import { ScrollView, StyleSheet, Switch, Text, View } from "react-native";
+import { useEffect, useState } from "react";
+import { ScrollView, StyleSheet, Switch, Text, TextInput, View } from "react-native";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 
 import { LoadingState, Panel, PrimaryButton, rq, SmallButton, StatePill } from "@/components/runquest/primitives";
 import { ScreenContainer } from "@/components/screen-container";
 import { useRunQuest } from "@/lib/runquest/context";
 import type { RunQuestCapability } from "@/lib/runquest/types";
+import { getTileProvider, normalizeMapStyleUrl, OPENFREEMAP_ATTRIBUTION, OPENFREEMAP_STYLE_URL } from "@/lib/runquest/map-providers";
 
 function CapabilityCard({ icon, capability }: { icon: React.ComponentProps<typeof MaterialIcons>["name"]; capability: RunQuestCapability }) {
   return <Panel style={styles.capability}><View style={styles.capabilityTop}><View style={styles.capabilityIcon}><MaterialIcons name={icon} size={19} color={rq.cyan} /></View><StatePill state={capability.state} /></View><Text style={styles.capabilityLabel}>{capability.label}</Text><Text style={styles.capabilityDetail}>{capability.detail}</Text></Panel>;
 }
 
 export default function SettingsScreen() {
-  const { hydrated, state, capabilities, refreshCapabilities, setTrackingMode, setHapticsEnabled, setReduceMotion, offlineAction, downloadCurrentOfflineRegion, removeOfflineRegion } = useRunQuest();
+  const { hydrated, state, capabilities, refreshCapabilities, setTrackingMode, setHapticsEnabled, setReduceMotion, setMapStyleUrl, offlineAction, downloadCurrentOfflineRegion, removeOfflineRegion } = useRunQuest();
+  const [styleDraft, setStyleDraft] = useState(OPENFREEMAP_STYLE_URL);
+  const [providerMessage, setProviderMessage] = useState<string | null>(null);
+  useEffect(() => {
+    if (hydrated) setStyleDraft(state.settings.mapStyleUrl);
+  }, [hydrated, state.settings.mapStyleUrl]);
   if (!hydrated) return <LoadingState />;
   const caps = capabilities;
+  const provider = getTileProvider(state.settings.mapProvider);
+  const saveProvider = () => {
+    const normalized = normalizeMapStyleUrl(styleDraft);
+    if (!normalized) {
+      setProviderMessage("Use a complete HTTPS MapLibre style URL.");
+      return;
+    }
+    setMapStyleUrl(normalized);
+    setProviderMessage("Map source saved. Existing offline packs remain unchanged.");
+  };
   return (
     <ScreenContainer className="px-5" safeAreaClassName="bg-background">
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
@@ -33,14 +50,24 @@ export default function SettingsScreen() {
           <View style={styles.switchRow}><View style={styles.switchCopy}><Text style={styles.switchTitle}>Reduce motion</Text><Text style={styles.switchBody}>Use steady visual feedback in place of motion-heavy effects.</Text></View><Switch value={state.settings.reduceMotion} onValueChange={setReduceMotion} trackColor={{ false: rq.border, true: rq.teal + "AA" }} thumbColor={state.settings.reduceMotion ? rq.teal : rq.mist} /></View>
         </Panel>
 
+        <Panel style={styles.providerPanel}>
+          <View style={styles.offlineHeader}><View><Text style={styles.offlineEyebrow}>OPEN MAP PROVIDER</Text><Text style={styles.offlineTitle}>{provider.label}</Text></View><MaterialIcons name="public" color={rq.cyan} size={26} /></View>
+          <Text style={styles.offlineBody}>RunQuest uses the open-source OpenFreeMap Liberty vector style. You can point MapLibre at a permitted self-hosted style without adding an account or Google service.</Text>
+          <Text style={styles.inputLabel}>MapLibre style URL</Text>
+          <TextInput value={styleDraft} onChangeText={(value) => { setStyleDraft(value); setProviderMessage(null); }} autoCapitalize="none" autoCorrect={false} keyboardType="url" returnKeyType="done" style={styles.urlInput} placeholder="https://…/style.json" placeholderTextColor={rq.mist} accessibilityLabel="MapLibre style URL" />
+          {providerMessage ? <Text style={styles.providerMessage}>{providerMessage}</Text> : null}
+          <View style={styles.providerActions}><PrimaryButton label="Save source" icon="save" tone="slate" onPress={saveProvider} /><SmallButton label="Use OpenFreeMap" onPress={() => { setStyleDraft(OPENFREEMAP_STYLE_URL); setMapStyleUrl(OPENFREEMAP_STYLE_URL); setProviderMessage("OpenFreeMap Liberty restored."); }} /></View>
+          <Text style={styles.offlineCredit}>{OPENFREEMAP_ATTRIBUTION}. {provider.offlineNote}</Text>
+        </Panel>
+
         <Panel style={styles.offlinePanel}>
           <View style={styles.offlineHeader}><View><Text style={styles.offlineEyebrow}>OFFLINE ATLAS PACKS</Text><Text style={styles.offlineTitle}>{state.offlineRegions.length} / 4 regions prepared</Text></View><MaterialIcons name="download-for-offline" color={rq.teal} size={26} /></View>
-          <Text style={styles.offlineBody}>Prepare a compact 3 × 3 local tile pack around your latest expedition point. During an offline expedition, RunQuest shows this saved Atlas base with your route and discoveries on top.</Text>
+          <Text style={styles.offlineBody}>Existing local packs remain readable. New public-tile downloads are paused until a provider that explicitly permits offline archives is configured. During an offline expedition, RunQuest can still show an installed pack with your route and discoveries on top.</Text>
           {offlineAction.state === "DOWNLOADING" ? <View style={styles.downloadProgress}><View style={styles.downloadTrack}><View style={[styles.downloadFill, { width: `${Math.max(5, offlineAction.total ? offlineAction.completed / offlineAction.total * 100 : 5)}%` }]} /></View><Text style={styles.downloadLabel}>{offlineAction.completed} / {offlineAction.total} tiles saved</Text></View> : null}
           {offlineAction.message ? <Text style={[styles.offlineMessage, offlineAction.state === "ERROR" && styles.offlineError]}>{offlineAction.message}</Text> : null}
           {state.offlineRegions.map((region) => <View key={region.id} style={styles.regionRow}><View style={styles.regionIcon}><MaterialIcons name="map" color={rq.gold} size={18} /></View><View style={styles.regionCopy}><Text style={styles.regionTitle}>Atlas pack · zoom {region.zoom}</Text><Text style={styles.regionDetail}>{region.tileCount} tiles · saved {new Date(region.downloadedAt).toLocaleDateString()}</Text></View><SmallButton label="Remove" onPress={() => void removeOfflineRegion(region.id)} /></View>)}
-          <PrimaryButton label={offlineAction.state === "DOWNLOADING" ? "Preparing local map…" : "Prepare offline Atlas pack"} icon="download" tone="slate" disabled={offlineAction.state === "DOWNLOADING" || state.offlineRegions.length >= 4} onPress={() => void downloadCurrentOfflineRegion()} />
-          <Text style={styles.offlineCredit}>Base tiles © OpenStreetMap contributors. Packs are intentionally small and removable to protect device storage.</Text>
+          <PrimaryButton label={offlineAction.state === "DOWNLOADING" ? "Preparing local map…" : "Check offline source"} icon="download" tone="slate" disabled={offlineAction.state === "DOWNLOADING" || state.offlineRegions.length >= 4} onPress={() => void downloadCurrentOfflineRegion()} />
+          <Text style={styles.offlineCredit}>Existing packs retain their source metadata. New offline archives must come from a provider that explicitly permits offline use and must remain attributable and removable.</Text>
         </Panel>
 
         <View style={styles.capabilityHeader}><Text style={styles.controlTitle}>This device</Text><SmallButton label="Refresh" onPress={() => void refreshCapabilities()} /></View>
@@ -61,6 +88,11 @@ const styles = StyleSheet.create({
   controlTitle: { color: rq.cloud, fontSize: 16, fontWeight: "800" },
   modeRow: { flexDirection: "row", gap: 8 },
   controlHelp: { color: rq.mist, fontSize: 12, lineHeight: 18, fontWeight: "500" },
+  providerPanel: { gap: 11, backgroundColor: rq.cyan + "0F", borderColor: rq.cyan + "45" },
+  inputLabel: { color: rq.cloud, fontSize: 11, fontWeight: "800", letterSpacing: 0.4 },
+  urlInput: { minHeight: 44, borderWidth: 1, borderColor: rq.border, borderRadius: 12, paddingHorizontal: 12, color: rq.cloud, backgroundColor: rq.midnight, fontSize: 12 },
+  providerMessage: { color: rq.teal, fontSize: 11, lineHeight: 16, fontWeight: "700" },
+  providerActions: { flexDirection: "row", alignItems: "center", gap: 9, flexWrap: "wrap" },
   switchPanel: { gap: 14 },
   switchRow: { flexDirection: "row", gap: 12, alignItems: "center" },
   switchCopy: { flex: 1, gap: 3 },

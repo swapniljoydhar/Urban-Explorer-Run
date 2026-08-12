@@ -80,6 +80,9 @@ export type RunQuestSettings = {
   trackingMode: TrackingMode;
   hapticsEnabled: boolean;
   reduceMotion: boolean;
+  /** Added as optional-compatible settings; legacy v1 data defaults to OpenFreeMap. */
+  mapProvider: "OpenFreeMap" | "OpenStreetMap";
+  mapStyleUrl: string;
 };
 
 export type OfflineMapRegion = {
@@ -89,7 +92,7 @@ export type OfflineMapRegion = {
   zoom: number;
   tileCount: number;
   downloadedAt: number;
-  provider: "OpenStreetMap";
+  provider: "OpenStreetMap" | "OpenFreeMap";
 };
 
 export type RunQuestState = {

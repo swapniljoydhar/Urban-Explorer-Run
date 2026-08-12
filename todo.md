@@ -48,3 +48,10 @@
 - [ ] Define the Organic Maps-inspired region-management UX: discover/select region, estimate size, download/pause/resume, verify, update, set active, and delete
 
 This strategy exploration is design-only; do not modify application code, dependencies, configuration, assets, or saved-state schema until explicit approval.
+- [x] Validate the first permitted offline-capable open-source tile provider, including offline/prefetch permission, attribution, licensing, URL/style contract, and Android/MapLibre compatibility
+- [x] Add a backward-compatible provider configuration model and migrate existing saved settings and offline-pack source metadata without breaking v1 state
+- [x] Add a Settings panel to select, validate, preview, and manage the permitted provider configuration with visible attribution and clear offline readiness
+- [ ] Thread the validated provider through MapLibre rendering and offline-pack creation while preserving legacy packs and Google-free operation
+- [x] Run pnpm check, pnpm test, pnpm lint, and targeted offline-provider/Settings regression validation before checkpoint
+
+Provider integration remains subject to evidence-based validation; no implementation should use public OSM raster tiles for offline prefetch.

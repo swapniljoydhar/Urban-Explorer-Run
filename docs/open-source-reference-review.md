@@ -64,3 +64,17 @@ The reference review **does not change the approval gate**. It confirms the foll
 [2]: https://github.com/organicmaps/organicmaps "Organic Maps"
 [3]: https://github.com/mendhak/gpslogger "GPSLogger"
 [4]: https://github.com/protomaps/PMTiles "PMTiles"
+
+
+## Provider validation update: OpenFreeMap
+
+The first provider candidate is **OpenFreeMap**, an OSM-derived, open-source vector-map host with a documented MapLibre style URL: `https://tiles.openfreemap.org/styles/liberty`.[5] Its official site states that the public instance is free, requires no registration or API key, supports self-hosting, and allows commercial usage. Attribution is required: `OpenFreeMap © OpenMapTiles Data from OpenStreetMap`; MapLibre style metadata may provide attribution automatically, but RunQuest will still keep attribution visible in its own map/settings UI.[5]
+
+OpenFreeMap also publishes weekly full-planet Btrfs and MBTiles downloads, and its project is designed to support self-hosting.[6] This makes it a stronger first source than the public OSM raster endpoint, but the RunQuest implementation will not crawl or bulk-prefetch the public OpenFreeMap endpoint. The safe first integration is a provider preset for the documented vector style plus an explicit **offline-capable source mode** that accepts a permitted self-hosted or supplied archive. An offline pack is READY only when its local archive/source metadata says offline use is permitted; an online public style alone is not treated as an offline pack.
+
+OpenMapTiles’ own documentation confirms that its vector-tile schema is open source under BSD + CC-BY, while the underlying OpenStreetMap data remains subject to ODbL and requires proper attribution.[7] Stadia Maps was not selected as the first offline provider because its FAQ states that hosted APIs are not offline and directs offline users to on-premises or embedded solutions.[8]
+
+[5]: https://openfreemap.org/quick_start/ "OpenFreeMap Quick Start Guide and MapLibre Liberty style"
+[6]: https://github.com/hyperknot/openfreemap "OpenFreeMap source, self-hosting, and download information"
+[7]: https://openmaptiles.org/docs/generate/generate-openmaptiles/ "OpenMapTiles vector schema and licensing guidance"
+[8]: https://stadiamaps.com/faqs/ "Stadia Maps FAQ: hosted API and offline limitations"

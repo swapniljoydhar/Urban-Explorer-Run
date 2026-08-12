@@ -49,6 +49,8 @@ const persistedStateSchema = z.object({
     trackingMode: z.enum(["balanced", "precision", "battery-saver"]).optional(),
     hapticsEnabled: z.boolean().optional(),
     reduceMotion: z.boolean().optional(),
+    mapProvider: z.enum(["OpenFreeMap", "OpenStreetMap"]).optional(),
+    mapStyleUrl: z.string().url().max(512).refine((value) => value.startsWith("https://")).optional(),
   }).optional(),
   offlineRegions: z.array(z.object({
     id: z.string().regex(/^atlas-\d+-\d+-\d+$/),
@@ -57,7 +59,7 @@ const persistedStateSchema = z.object({
     zoom: z.number().int().min(10).max(17),
     tileCount: z.number().int().min(1).max(25),
     downloadedAt: finiteNumber.nonnegative(),
-    provider: z.literal("OpenStreetMap"),
+    provider: z.enum(["OpenStreetMap", "OpenFreeMap"]),
   })).max(4).optional(),
 }).passthrough();
 
