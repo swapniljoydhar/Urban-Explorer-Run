@@ -33,3 +33,12 @@
 - [x] Audit and remove Google-backed map, SDK, and build assumptions from the Android app
 - [x] Replace native mapping with an open-source renderer and preserve offline Atlas package behavior
 - [x] Validate the Google-free Android build path and document any device-level Google components outside app control
+- [ ] Complete and obtain approval for a full architecture, product, quality, security, performance, UX, and cleanup assessment before further implementation
+- [ ] Add MapLibre animated current-location markers and accuracy indicators after plan approval
+- [ ] Build full downloaded offline-region management, refresh, and deletion workflows after plan approval
+- [ ] Add open-source tile-server selection, validation, attribution, and server-switching settings after plan approval
+- [ ] Evaluate and prioritize sensor-assisted tracking improvements, motion/visual polish, responsive themes, and accessibility enhancements after plan approval
+- [ ] Reconcile the user’s newly attached quality requirements with the architecture report, including visual design, animation, responsive layout, theme variants, notification hierarchy, and accessibility, before implementation approval
+- [ ] Plan a compatibility-safe cleanup of unused template code, folders, assets, dependencies, and development-server processes only after approved regression coverage and build validation are defined
+- [ ] Define post-approval physical-device stress, lifecycle, data-recovery, offline-package, and performance validation for the approved changes
+- [ ] Produce and obtain review of the detailed MapLibre animated-marker, accuracy-indicator, and camera-follow technical design before implementing that feature
