@@ -43,3 +43,8 @@
 - [ ] Define post-approval physical-device stress, lifecycle, data-recovery, offline-package, and performance validation for the approved changes
 - [ ] Produce and obtain review of the detailed MapLibre animated-marker, accuracy-indicator, and camera-follow technical design before implementing that feature
 - [ ] Research maintained open-source map, offline, fitness-tracking, and React Native reference projects; reconcile only compatible patterns with the approved RunQuest roadmap before implementation
+- [ ] Compare offline-map archive strategies (provider-aware raster pack, compressed archive, MBTiles, PMTiles, and vector-region packages) using Organic Maps-style UX principles; obtain approval before implementation
+- [ ] Define backward-compatible archive manifest, integrity, resumable-download, stale-source, corruption-recovery, and migration rules for offline regions
+- [ ] Define the Organic Maps-inspired region-management UX: discover/select region, estimate size, download/pause/resume, verify, update, set active, and delete
+
+This strategy exploration is design-only; do not modify application code, dependencies, configuration, assets, or saved-state schema until explicit approval.
