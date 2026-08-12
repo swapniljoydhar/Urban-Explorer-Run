@@ -9,7 +9,7 @@ import { createDemoPoint, createWorkoutId, currentRuleset, processLocationSample
 import { DEFAULT_RUNQUEST_STATE, loadRunQuestState, saveRunQuestState } from "@/lib/runquest/persistence";
 import { safelyRemoveSubscription } from "@/lib/runquest/subscriptions";
 import { openLocation, type OpenLocationListener } from "@/lib/runquest/open-location";
-import { offlineRegionExists, removeOfflineRegion } from "@/lib/runquest/offline-packages";
+import { inspectOfflineRegion, offlineRegionStorageExists, removeOfflineRegion, type OfflineRegionInspection } from "@/lib/runquest/offline-packages";
 import {
   type ActiveExpedition,
   type CapabilitySnapshot,
@@ -42,6 +42,9 @@ type RunQuestContextValue = {
   offlineAction: { state: "IDLE" | "DOWNLOADING" | "ERROR"; completed: number; total: number; message: string | null };
   downloadCurrentOfflineRegion: () => Promise<void>;
   removeOfflineRegion: (id: string) => Promise<void>;
+  setActiveOfflineRegion: (id: string | null) => void;
+  inspectOfflineRegion: (id: string) => Promise<OfflineRegionInspection | null>;
+  repairOfflineRegion: (id: string) => Promise<void>;
 };
 
 const RunQuestContext = createContext<RunQuestContextValue | null>(null);
@@ -83,7 +86,7 @@ export function RunQuestProvider({ children }: PropsWithChildren) {
 
   useEffect(() => {
     void Promise.all([loadRunQuestState(), inspectCapabilities()]).then(async ([persistedState, nextCapabilities]) => {
-      const confirmedRegions = (await Promise.all(persistedState.offlineRegions.map(async (region) => (await offlineRegionExists(region)) ? region : null))).filter((region): region is OfflineMapRegion => region !== null);
+      const confirmedRegions = (await Promise.all(persistedState.offlineRegions.map(async (region) => (await offlineRegionStorageExists(region)) ? region : null))).filter((region): region is OfflineMapRegion => region !== null);
       const hydratedState = confirmedRegions.length === persistedState.offlineRegions.length ? persistedState : { ...persistedState, offlineRegions: confirmedRegions };
       stateRef.current = hydratedState;
       setState(hydratedState);
@@ -304,12 +307,34 @@ export function RunQuestProvider({ children }: PropsWithChildren) {
     if (!region) return;
     try {
       await removeOfflineRegion(region);
-      commitState({ ...stateRef.current, offlineRegions: stateRef.current.offlineRegions.filter((candidate) => candidate.id !== id) }, true);
+      const nextRegions = stateRef.current.offlineRegions.filter((candidate) => candidate.id !== id);
+      commitState({ ...stateRef.current, offlineRegions: nextRegions, activeOfflineRegionId: stateRef.current.activeOfflineRegionId === id ? (nextRegions[0]?.id ?? null) : stateRef.current.activeOfflineRegionId }, true);
       setOfflineAction({ state: "IDLE", completed: 0, total: 0, message: "Offline Atlas pack removed." });
     } catch {
       setOfflineAction({ state: "ERROR", completed: 0, total: 0, message: "The Atlas pack could not be removed. Try again when storage is available." });
     }
   }, [commitState]);
+
+  const setActiveOfflineRegion = useCallback((id: string | null) => {
+    if (id !== null && !stateRef.current.offlineRegions.some((region) => region.id === id)) return;
+    commitState({ ...stateRef.current, activeOfflineRegionId: id }, true);
+    setOfflineAction({ state: "IDLE", completed: 0, total: 0, message: id ? "Active Atlas pack changed." : "Offline Atlas selection cleared." });
+  }, [commitState]);
+
+  const inspectOfflineRegionById = useCallback(async (id: string) => {
+    const region = stateRef.current.offlineRegions.find((candidate) => candidate.id === id);
+    return region ? inspectOfflineRegion(region) : null;
+  }, []);
+
+  const repairOfflineRegion = useCallback(async (id: string) => {
+    const inspection = await inspectOfflineRegionById(id);
+    if (!inspection) return;
+    if (inspection.status === "READY") {
+      setOfflineAction({ state: "IDLE", completed: inspection.presentTiles, total: inspection.expectedTiles, message: "Atlas pack verified and ready." });
+      return;
+    }
+    setOfflineAction({ state: "ERROR", completed: inspection.presentTiles, total: inspection.expectedTiles, message: "This pack is incomplete. No files were changed; a permitted offline archive source is required for repair." });
+  }, [inspectOfflineRegionById]);
 
   useEffect(() => () => {
     clearSubscriptions();
@@ -338,7 +363,10 @@ export function RunQuestProvider({ children }: PropsWithChildren) {
     offlineAction,
     downloadCurrentOfflineRegion,
     removeOfflineRegion: removeOfflineMapRegion,
-  }), [activeExpedition, capabilities, downloadCurrentOfflineRegion, endExpedition, hydrated, latestReport, offlineAction, pauseExpedition, persistenceState, recordDemoDiscovery, refreshCapabilities, removeOfflineMapRegion, resumeExpedition, setMapStyleUrl, startExpedition, state, updateSettings]);
+    setActiveOfflineRegion,
+    inspectOfflineRegion: inspectOfflineRegionById,
+    repairOfflineRegion,
+  }), [activeExpedition, capabilities, downloadCurrentOfflineRegion, endExpedition, hydrated, inspectOfflineRegionById, latestReport, offlineAction, pauseExpedition, persistenceState, recordDemoDiscovery, refreshCapabilities, removeOfflineMapRegion, repairOfflineRegion, resumeExpedition, setActiveOfflineRegion, setMapStyleUrl, startExpedition, state, updateSettings]);
 
   return <RunQuestContext.Provider value={value}>{children}</RunQuestContext.Provider>;
 }

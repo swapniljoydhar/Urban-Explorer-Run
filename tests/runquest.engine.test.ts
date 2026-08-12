@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { getDailyContract } from "@/lib/runquest/contracts";
 import { evaluateNewAchievements } from "@/lib/runquest/achievements";
-import { createOfflineRegion, offlineTileCoordinates } from "@/lib/runquest/offline-regions";
+import { createOfflineRegion, getActiveOfflineRegion, offlineTileCoordinates } from "@/lib/runquest/offline-regions";
 import { calculateLevel, calculateXp, encodeHexGridV1, processLocationSample } from "@/lib/runquest/engine";
 import { migrateRunQuestState } from "@/lib/runquest/migration";
 import { normalizeMapStyleUrl, OPENFREEMAP_STYLE_URL } from "@/lib/runquest/map-providers";
@@ -100,6 +100,7 @@ describe("RunQuest compatibility-safe engine", () => {
     expect(migrated.profile.achievements).toEqual([]);
     expect(migrated.settings.hapticsEnabled).toBe(false);
     expect(migrated.settings.trackingMode).toBe("balanced");
+    expect(migrated.activeOfflineRegionId).toBeNull();
     expect(migrated.workouts).toEqual([]);
   });
 
@@ -178,6 +179,14 @@ describe("RunQuest compatibility-safe engine", () => {
     expect(migrateRunQuestState({}).offlineRegions).toEqual([]);
     const oversized = Array.from({ length: 5 }, (_, index) => ({ id: `atlas-14-${index}-${index}`, latitude: 1, longitude: 1, zoom: 14, tileCount: 9, downloadedAt: 1, provider: "OpenStreetMap" }));
     expect(migrateRunQuestState({ offlineRegions: oversized }).offlineRegions).toEqual([]);
+  });
+
+  it("resolves the selected pack and falls back safely for legacy state", () => {
+    const first = createOfflineRegion(37.7749, -122.4194, 1_000);
+    const second = createOfflineRegion(40.7128, -74.006, 2_000);
+    expect(getActiveOfflineRegion({ offlineRegions: [first, second], activeOfflineRegionId: second.id })).toEqual(second);
+    expect(getActiveOfflineRegion({ offlineRegions: [first, second], activeOfflineRegionId: "atlas-14-999-999" })).toEqual(first);
+    expect(getActiveOfflineRegion({ offlineRegions: [], activeOfflineRegionId: null })).toBeNull();
   });
 
   it("never calls a browser location subscription removal path during cleanup", () => {

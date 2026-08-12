@@ -12,6 +12,7 @@ import { formatDistance, formatDuration } from "@/lib/runquest/format";
 import { formatContractProgress, getContractProgress, getDailyContract, isContractClaimed } from "@/lib/runquest/contracts";
 import { useRunQuest } from "@/lib/runquest/context";
 import { lightFeedback, mediumFeedback, successFeedback } from "@/lib/runquest/feedback";
+import { getActiveOfflineRegion } from "@/lib/runquest/offline-regions";
 
 function ActiveScreenLock() {
   useKeepAwake("runquest-expedition", { suppressDeactivateWarnings: true });
@@ -68,7 +69,7 @@ export default function ExpeditionScreen() {
         </View>
 
         <View style={styles.mapWrap}>
-          <GeographicMap route={active.route} tiles={Object.values(state.tiles)} currentPoint={active.lastPoint} offlineRegion={state.offlineRegions[0] ?? null} mapStyleUrl={state.settings.mapStyleUrl} reduceMotion={state.settings.reduceMotion} />
+          <GeographicMap route={active.route} tiles={Object.values(state.tiles)} currentPoint={active.lastPoint} offlineRegion={getActiveOfflineRegion(state)} mapStyleUrl={state.settings.mapStyleUrl} reduceMotion={state.settings.reduceMotion} />
           <View style={styles.mapOverlay}><Text style={styles.mapEyebrow}>GEOGRAPHIC EXPEDITION MAP</Text><Text style={styles.mapTitle}>Your route and atlas cells appear here.</Text></View>
         </View>
 

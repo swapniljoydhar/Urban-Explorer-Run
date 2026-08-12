@@ -35,7 +35,7 @@
 - [x] Validate the Google-free Android build path and document any device-level Google components outside app control
 - [ ] Complete and obtain approval for a full architecture, product, quality, security, performance, UX, and cleanup assessment before further implementation
 - [x] Add MapLibre animated current-location markers and accuracy indicators after plan approval
-- [ ] Build full downloaded offline-region management, refresh, and deletion workflows after plan approval
+- [x] Build full downloaded offline-region management, refresh, and deletion workflows after plan approval
 - [ ] Add open-source tile-server selection, validation, attribution, and server-switching settings after plan approval
 - [ ] Evaluate and prioritize sensor-assisted tracking improvements, motion/visual polish, responsive themes, and accessibility enhancements after plan approval
 - [ ] Reconcile the user’s newly attached quality requirements with the architecture report, including visual design, animation, responsive layout, theme variants, notification hierarchy, and accessibility, before implementation approval
@@ -65,3 +65,8 @@ The attached native-audio, H3, WorkManager, Kotlin/JNI, Retrofit, Hilt, and Grad
 - [x] Validate the marker milestone with pnpm check, pnpm test, pnpm lint, Android/web export checks, and preview or device verification before checkpoint
 
 Approval received: MapLibre marker milestone only. Do not begin offline archive, sensor fusion, cleanup, or unrelated native-app work in this milestone.
+- [x] Implement approved offline-pack management: select active installed region, show source/status metadata, repair or refresh safely, and delete without affecting saved expeditions or tile identities
+- [x] Add deterministic offline-pack lifecycle tests for active selection, missing/corrupt files, repair refusal, deletion, and legacy-state migration
+- [x] Validate offline-pack management with pnpm check, pnpm test, pnpm lint, Android/web exports, and preview/device verification before checkpoint
+
+Approval received: offline-pack management milestone only. Do not begin sensor fusion, archive-format migration, cleanup, or unrelated native-app work in this milestone.

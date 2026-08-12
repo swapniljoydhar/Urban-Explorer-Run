@@ -4,6 +4,7 @@ import { GeographicMap } from "@/components/runquest/geographic-map";
 import { LoadingState, Metric, Panel, rq } from "@/components/runquest/primitives";
 import { ScreenContainer } from "@/components/screen-container";
 import { useRunQuest } from "@/lib/runquest/context";
+import { getActiveOfflineRegion } from "@/lib/runquest/offline-regions";
 
 export default function AtlasScreen() {
   const { hydrated, state } = useRunQuest();
@@ -17,7 +18,7 @@ export default function AtlasScreen() {
         <Text style={styles.eyebrow}>PERSONAL CARTOGRAPHY</Text>
         <Text style={styles.title}>Your atlas remembers.</Text>
         <Text style={styles.body}>Every discovered cell is local, versioned, and ready for future map upgrades without changing its meaning.</Text>
-        <View style={styles.mapWrap}><GeographicMap tiles={tiles} route={state.workouts[0]?.route ?? []} currentPoint={state.workouts[0]?.route.at(-1) ?? null} offlineRegion={state.offlineRegions[0] ?? null} mapStyleUrl={state.settings.mapStyleUrl} reduceMotion={state.settings.reduceMotion} /></View>
+        <View style={styles.mapWrap}><GeographicMap tiles={tiles} route={state.workouts[0]?.route ?? []} currentPoint={state.workouts[0]?.route.at(-1) ?? null} offlineRegion={getActiveOfflineRegion(state)} mapStyleUrl={state.settings.mapStyleUrl} reduceMotion={state.settings.reduceMotion} /></View>
         <Panel style={styles.panel}>
           <View style={styles.row}><Metric label="Discovered" value={String(tiles.length)} accent={rq.teal} /><Metric label="Mapped" value={String(mapped)} accent={rq.cyan} /><Metric label="Mastered" value={String(mastered)} accent={rq.gold} /></View>
         </Panel>

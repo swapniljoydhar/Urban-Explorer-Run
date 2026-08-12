@@ -102,6 +102,7 @@ export type RunQuestState = {
   workouts: WorkoutRecord[];
   settings: RunQuestSettings;
   offlineRegions: OfflineMapRegion[];
+  activeOfflineRegionId: string | null;
 };
 
 export type ActiveExpedition = {

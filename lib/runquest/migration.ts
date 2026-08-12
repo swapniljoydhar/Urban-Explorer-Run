@@ -61,6 +61,7 @@ const persistedStateSchema = z.object({
     downloadedAt: finiteNumber.nonnegative(),
     provider: z.enum(["OpenStreetMap", "OpenFreeMap"]),
   })).max(4).optional(),
+  activeOfflineRegionId: z.string().regex(/^atlas-\d+-\d+-\d+$/).nullable().optional(),
 }).passthrough();
 
 export function migrateRunQuestState(value: unknown): RunQuestState {

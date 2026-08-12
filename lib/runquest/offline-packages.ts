@@ -27,10 +27,43 @@ export function offlineTileUrlTemplate(region: OfflineMapRegion): string | null 
   return directory ? `${directory}{z}/{x}/{y}.png` : null;
 }
 
-export async function offlineRegionExists(region: OfflineMapRegion): Promise<boolean> {
+export type OfflineRegionStatus = "READY" | "PARTIAL" | "MISSING" | "WEB_UNAVAILABLE";
+
+export type OfflineRegionInspection = {
+  status: OfflineRegionStatus;
+  expectedTiles: number;
+  presentTiles: number;
+  bytes: number;
+};
+
+export async function inspectOfflineRegion(region: OfflineMapRegion): Promise<OfflineRegionInspection> {
+  if (Platform.OS === "web") return { status: "WEB_UNAVAILABLE", expectedTiles: region.tileCount, presentTiles: 0, bytes: 0 };
+  const coordinates = offlineTileCoordinates(region);
+  let presentTiles = 0;
+  let bytes = 0;
+  for (const tile of coordinates) {
+    const info = await FileSystem.getInfoAsync(`${regionDirectory(region)}${tile.z}/${tile.x}/${tile.y}.png`);
+    if (info.exists) {
+      presentTiles += 1;
+      bytes += typeof info.size === "number" ? info.size : 0;
+    }
+  }
+  return {
+    status: presentTiles === 0 ? "MISSING" : presentTiles === coordinates.length ? "READY" : "PARTIAL",
+    expectedTiles: coordinates.length,
+    presentTiles,
+    bytes,
+  };
+}
+
+export async function offlineRegionStorageExists(region: OfflineMapRegion): Promise<boolean> {
   if (Platform.OS === "web") return true;
   const info = await FileSystem.getInfoAsync(regionDirectory(region));
   return info.exists;
+}
+
+export async function offlineRegionExists(region: OfflineMapRegion): Promise<boolean> {
+  return (await inspectOfflineRegion(region)).status === "READY";
 }
 
 export async function downloadOfflineRegion(

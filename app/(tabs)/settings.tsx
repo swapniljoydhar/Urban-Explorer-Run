@@ -5,6 +5,7 @@ import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { LoadingState, Panel, PrimaryButton, rq, SmallButton, StatePill } from "@/components/runquest/primitives";
 import { ScreenContainer } from "@/components/screen-container";
 import { useRunQuest } from "@/lib/runquest/context";
+import type { OfflineRegionInspection } from "@/lib/runquest/offline-packages";
 import type { RunQuestCapability } from "@/lib/runquest/types";
 import { getTileProvider, normalizeMapStyleUrl, OPENFREEMAP_ATTRIBUTION, OPENFREEMAP_STYLE_URL } from "@/lib/runquest/map-providers";
 
@@ -13,8 +14,9 @@ function CapabilityCard({ icon, capability }: { icon: React.ComponentProps<typeo
 }
 
 export default function SettingsScreen() {
-  const { hydrated, state, capabilities, refreshCapabilities, setTrackingMode, setHapticsEnabled, setReduceMotion, setMapStyleUrl, offlineAction, downloadCurrentOfflineRegion, removeOfflineRegion } = useRunQuest();
+  const { hydrated, state, capabilities, refreshCapabilities, setTrackingMode, setHapticsEnabled, setReduceMotion, setMapStyleUrl, offlineAction, downloadCurrentOfflineRegion, removeOfflineRegion, setActiveOfflineRegion, inspectOfflineRegion, repairOfflineRegion } = useRunQuest();
   const [styleDraft, setStyleDraft] = useState(OPENFREEMAP_STYLE_URL);
+  const [regionInspections, setRegionInspections] = useState<Record<string, OfflineRegionInspection>>({});
   const [providerMessage, setProviderMessage] = useState<string | null>(null);
   useEffect(() => {
     if (hydrated) setStyleDraft(state.settings.mapStyleUrl);
@@ -22,6 +24,15 @@ export default function SettingsScreen() {
   if (!hydrated) return <LoadingState />;
   const caps = capabilities;
   const provider = getTileProvider(state.settings.mapProvider);
+  const formatBytes = (bytes: number) => bytes < 1024 ? `${bytes} B` : bytes < 1024 * 1024 ? `${(bytes / 1024).toFixed(1)} KB` : `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+  const verifyRegion = async (id: string) => {
+    const inspection = await inspectOfflineRegion(id);
+    if (inspection) setRegionInspections((previous) => ({ ...previous, [id]: inspection }));
+  };
+  const repairRegion = async (id: string) => {
+    await repairOfflineRegion(id);
+    await verifyRegion(id);
+  };
   const saveProvider = () => {
     const normalized = normalizeMapStyleUrl(styleDraft);
     if (!normalized) {
@@ -65,7 +76,15 @@ export default function SettingsScreen() {
           <Text style={styles.offlineBody}>Existing local packs remain readable. New public-tile downloads are paused until a provider that explicitly permits offline archives is configured. During an offline expedition, RunQuest can still show an installed pack with your route and discoveries on top.</Text>
           {offlineAction.state === "DOWNLOADING" ? <View style={styles.downloadProgress}><View style={styles.downloadTrack}><View style={[styles.downloadFill, { width: `${Math.max(5, offlineAction.total ? offlineAction.completed / offlineAction.total * 100 : 5)}%` }]} /></View><Text style={styles.downloadLabel}>{offlineAction.completed} / {offlineAction.total} tiles saved</Text></View> : null}
           {offlineAction.message ? <Text style={[styles.offlineMessage, offlineAction.state === "ERROR" && styles.offlineError]}>{offlineAction.message}</Text> : null}
-          {state.offlineRegions.map((region) => <View key={region.id} style={styles.regionRow}><View style={styles.regionIcon}><MaterialIcons name="map" color={rq.gold} size={18} /></View><View style={styles.regionCopy}><Text style={styles.regionTitle}>Atlas pack · zoom {region.zoom}</Text><Text style={styles.regionDetail}>{region.tileCount} tiles · saved {new Date(region.downloadedAt).toLocaleDateString()}</Text></View><SmallButton label="Remove" onPress={() => void removeOfflineRegion(region.id)} /></View>)}
+          {state.offlineRegions.map((region) => {
+            const inspection = regionInspections[region.id];
+            const isActive = state.activeOfflineRegionId === region.id || (!state.activeOfflineRegionId && state.offlineRegions[0]?.id === region.id);
+            return <View key={region.id} style={[styles.regionRow, isActive && styles.activeRegionRow]}>
+              <View style={styles.regionIcon}><MaterialIcons name={isActive ? "check-circle" : "map"} color={isActive ? rq.teal : rq.gold} size={18} /></View>
+              <View style={styles.regionCopy}><Text style={styles.regionTitle}>{isActive ? "Active Atlas pack" : "Atlas pack"} · zoom {region.zoom}</Text><Text style={styles.regionDetail}>{region.tileCount} tiles · {region.provider} · {region.latitude.toFixed(3)}, {region.longitude.toFixed(3)}</Text><Text style={styles.regionStatus}>{inspection ? `${inspection.status} · ${inspection.presentTiles}/${inspection.expectedTiles} tiles · ${formatBytes(inspection.bytes)}` : `saved ${new Date(region.downloadedAt).toLocaleDateString()}`}</Text></View>
+              <View style={styles.regionActions}><SmallButton label={isActive ? "Active" : "Use"} active={isActive} onPress={() => setActiveOfflineRegion(region.id)} /><SmallButton label="Verify" onPress={() => void verifyRegion(region.id)} /><SmallButton label="Repair" onPress={() => void repairRegion(region.id)} /><SmallButton label="Remove" onPress={() => void removeOfflineRegion(region.id)} /></View>
+            </View>;
+          })}
           <PrimaryButton label={offlineAction.state === "DOWNLOADING" ? "Preparing local map…" : "Check offline source"} icon="download" tone="slate" disabled={offlineAction.state === "DOWNLOADING" || state.offlineRegions.length >= 4} onPress={() => void downloadCurrentOfflineRegion()} />
           <Text style={styles.offlineCredit}>Existing packs retain their source metadata. New offline archives must come from a provider that explicitly permits offline use and must remain attributable and removable.</Text>
         </Panel>
@@ -110,11 +129,14 @@ const styles = StyleSheet.create({
   downloadLabel: { color: rq.teal, fontSize: 11, fontWeight: "800" },
   offlineMessage: { color: rq.teal, fontSize: 11, lineHeight: 16, fontWeight: "700" },
   offlineError: { color: rq.coral },
-  regionRow: { flexDirection: "row", alignItems: "center", gap: 9, paddingTop: 10, borderTopWidth: 1, borderTopColor: rq.border },
+  regionRow: { flexDirection: "row", alignItems: "flex-start", gap: 9, paddingTop: 10, borderTopWidth: 1, borderTopColor: rq.border },
+  activeRegionRow: { backgroundColor: rq.teal + "0D", borderRadius: 12, padding: 9, borderTopWidth: 0 },
   regionIcon: { width: 32, height: 32, borderRadius: 11, alignItems: "center", justifyContent: "center", backgroundColor: rq.gold + "18" },
   regionCopy: { flex: 1, gap: 2 },
   regionTitle: { color: rq.cloud, fontSize: 12, fontWeight: "800" },
-  regionDetail: { color: rq.mist, fontSize: 10, fontWeight: "600" },
+  regionDetail: { color: rq.mist, fontSize: 10, lineHeight: 14, fontWeight: "600" },
+  regionStatus: { color: rq.teal, fontSize: 10, lineHeight: 14, fontWeight: "700" },
+  regionActions: { alignItems: "flex-end", gap: 5 },
   offlineCredit: { color: rq.mist, fontSize: 10, lineHeight: 15, fontWeight: "500" },
   capabilityHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   capabilityGrid: { gap: 10 },

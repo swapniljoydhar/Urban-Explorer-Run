@@ -39,3 +39,10 @@ export function offlineTileCoordinates(region: OfflineMapRegion) {
   }
   return tiles;
 }
+
+export function getActiveOfflineRegion(state: { offlineRegions: OfflineMapRegion[]; activeOfflineRegionId: string | null }): OfflineMapRegion | null {
+  if (state.activeOfflineRegionId) {
+    return state.offlineRegions.find((region) => region.id === state.activeOfflineRegionId) ?? state.offlineRegions[0] ?? null;
+  }
+  return state.offlineRegions[0] ?? null;
+}
