@@ -6,6 +6,7 @@ import { createOfflineRegion, offlineTileCoordinates } from "@/lib/runquest/offl
 import { calculateLevel, calculateXp, encodeHexGridV1, processLocationSample } from "@/lib/runquest/engine";
 import { migrateRunQuestState } from "@/lib/runquest/migration";
 import { normalizeMapStyleUrl, OPENFREEMAP_STYLE_URL } from "@/lib/runquest/map-providers";
+import { canFollowCamera, createAccuracyFeature, getMarkerAccuracyBand, getAccuracyRadiusMeters, shouldInterruptFollow } from "@/lib/runquest/map-marker";
 import { safelyRemoveSubscription } from "@/lib/runquest/subscriptions";
 import type { ActiveExpedition, RoutePoint } from "@/lib/runquest/types";
 
@@ -106,6 +107,27 @@ describe("RunQuest compatibility-safe engine", () => {
     const migrated = migrateRunQuestState({ profile: { totalXp: 25 } });
     expect(migrated.settings.mapProvider).toBe("OpenFreeMap");
     expect(migrated.settings.mapStyleUrl).toBe(OPENFREEMAP_STYLE_URL);
+  });
+
+  it("classifies marker accuracy and creates a bounded geodesic confidence ring", () => {
+    expect(getMarkerAccuracyBand(8)).toBe("excellent");
+    expect(getMarkerAccuracyBand(32)).toBe("good");
+    expect(getMarkerAccuracyBand(75)).toBe("fair");
+    expect(getMarkerAccuracyBand(180)).toBe("poor");
+    expect(getMarkerAccuracyBand(null)).toBe("unknown");
+    expect(getAccuracyRadiusMeters(2)).toBe(6);
+    expect(getAccuracyRadiusMeters(250)).toBe(150);
+    const feature = createAccuracyFeature(firstPoint);
+    expect(feature?.geometry.type).toBe("Polygon");
+    expect(feature?.geometry.coordinates[0]).toHaveLength(33);
+  });
+
+  it("interrupts camera follow only for user interaction and preserves recenter eligibility", () => {
+    expect(canFollowCamera("following", true)).toBe(true);
+    expect(canFollowCamera("free", true)).toBe(false);
+    expect(shouldInterruptFollow(true, "following")).toBe(true);
+    expect(shouldInterruptFollow(false, "following")).toBe(false);
+    expect(shouldInterruptFollow(true, "free")).toBe(false);
   });
 
   it("accepts only bounded HTTPS map style URLs", () => {

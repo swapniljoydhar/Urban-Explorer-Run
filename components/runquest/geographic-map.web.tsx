@@ -5,6 +5,7 @@ import { StyleSheet, Text, View } from "react-native";
 
 import type { GeographicMapProps } from "@/components/runquest/geographic-map.types";
 import { rq } from "@/components/runquest/primitives";
+import { getAccuracyRadiusMeters, getMarkerAccuracyBand, getMarkerColor } from "@/lib/runquest/map-marker";
 
 type MapParts = {
   MapContainer: ComponentType<any>;
@@ -23,6 +24,8 @@ export function GeographicMap({ route, tiles, currentPoint }: GeographicMapProps
   const mapKey = initialPoint ? `map-${initialPoint.timestamp}` : "map-fallback";
   const atlasTiles = useMemo(() => tiles.filter((tile) => tile.latitude !== undefined && tile.longitude !== undefined).slice(-80), [tiles]);
   const routeCoordinates = route.map((point) => [point.latitude, point.longitude] as [number, number]);
+  const accuracyRadius = getAccuracyRadiusMeters(currentPoint?.accuracy);
+  const accuracyColor = getMarkerColor(getMarkerAccuracyBand(currentPoint?.accuracy));
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -51,7 +54,8 @@ export function GeographicMap({ route, tiles, currentPoint }: GeographicMapProps
         <TileLayer attribution="© OpenStreetMap contributors" url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
         {atlasTiles.map((tile) => <Circle key={tile.id} center={[tile.latitude as number, tile.longitude as number]} radius={62} pathOptions={{ color: tile.mastery === "MASTERED" ? rq.gold : rq.teal, fillColor: tile.mastery === "MASTERED" ? rq.gold : rq.teal, fillOpacity: 0.28, weight: 1.5 }} />)}
         {routeCoordinates.length > 1 ? <Polyline positions={routeCoordinates} pathOptions={{ color: rq.cyan, weight: 5, lineCap: "round", lineJoin: "round" }} /> : null}
-        {currentPoint ? <CircleMarker center={[currentPoint.latitude, currentPoint.longitude]} radius={8} pathOptions={{ color: "#FFFFFF", fillColor: rq.coral, fillOpacity: 1, weight: 2 }} /> : null}
+        {currentPoint && accuracyRadius ? <Circle center={[currentPoint.latitude, currentPoint.longitude]} radius={accuracyRadius} pathOptions={{ color: accuracyColor, fillColor: accuracyColor, fillOpacity: 0.11, weight: 1.5 }} /> : null}
+        {currentPoint ? <CircleMarker center={[currentPoint.latitude, currentPoint.longitude]} radius={8} pathOptions={{ color: "#FFFFFF", fillColor: accuracyColor, fillOpacity: 1, weight: 2 }} /> : null}
       </MapContainer>
     </View>
   );

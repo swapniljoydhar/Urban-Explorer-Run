@@ -34,14 +34,14 @@
 - [x] Replace native mapping with an open-source renderer and preserve offline Atlas package behavior
 - [x] Validate the Google-free Android build path and document any device-level Google components outside app control
 - [ ] Complete and obtain approval for a full architecture, product, quality, security, performance, UX, and cleanup assessment before further implementation
-- [ ] Add MapLibre animated current-location markers and accuracy indicators after plan approval
+- [x] Add MapLibre animated current-location markers and accuracy indicators after plan approval
 - [ ] Build full downloaded offline-region management, refresh, and deletion workflows after plan approval
 - [ ] Add open-source tile-server selection, validation, attribution, and server-switching settings after plan approval
 - [ ] Evaluate and prioritize sensor-assisted tracking improvements, motion/visual polish, responsive themes, and accessibility enhancements after plan approval
 - [ ] Reconcile the user’s newly attached quality requirements with the architecture report, including visual design, animation, responsive layout, theme variants, notification hierarchy, and accessibility, before implementation approval
 - [ ] Plan a compatibility-safe cleanup of unused template code, folders, assets, dependencies, and development-server processes only after approved regression coverage and build validation are defined
 - [ ] Define post-approval physical-device stress, lifecycle, data-recovery, offline-package, and performance validation for the approved changes
-- [ ] Produce and obtain review of the detailed MapLibre animated-marker, accuracy-indicator, and camera-follow technical design before implementing that feature
+- [x] Produce and obtain review of the detailed MapLibre animated-marker, accuracy-indicator, and camera-follow technical design before implementing that feature
 - [ ] Research maintained open-source map, offline, fitness-tracking, and React Native reference projects; reconcile only compatible patterns with the approved RunQuest roadmap before implementation
 - [ ] Compare offline-map archive strategies (provider-aware raster pack, compressed archive, MBTiles, PMTiles, and vector-region packages) using Organic Maps-style UX principles; obtain approval before implementation
 - [ ] Define backward-compatible archive manifest, integrity, resumable-download, stale-source, corruption-recovery, and migration rules for offline regions
@@ -60,3 +60,8 @@ Provider integration remains subject to evidence-based validation; no implementa
 - [ ] Confirm the next implementation scope with the user before making further changes beyond the current provider Settings checkpoint
 
 The attached native-audio, H3, WorkManager, Kotlin/JNI, Retrofit, Hilt, and Gradle instructions must not be imported into RunQuest unless a current workspace audit proves an equivalent subsystem exists.
+- [x] Implement the approved MapLibre animated current-location marker milestone with an accuracy ring, reduced-motion behavior, camera follow/recenter controls, and web-safe fallback
+- [x] Add deterministic marker confidence, camera-follow, lifecycle, and compatibility regression tests
+- [x] Validate the marker milestone with pnpm check, pnpm test, pnpm lint, Android/web export checks, and preview or device verification before checkpoint
+
+Approval received: MapLibre marker milestone only. Do not begin offline archive, sensor fusion, cleanup, or unrelated native-app work in this milestone.

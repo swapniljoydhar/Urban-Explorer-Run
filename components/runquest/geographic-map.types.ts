@@ -6,4 +6,5 @@ export type GeographicMapProps = {
   currentPoint?: RoutePoint | null;
   offlineRegion?: OfflineMapRegion | null;
   mapStyleUrl?: string;
+  reduceMotion?: boolean;
 };
