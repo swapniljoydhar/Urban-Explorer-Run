@@ -104,6 +104,8 @@ export function processLocationSample(
         [tileId]: {
           id: tileId,
           encoderVersion: TILE_ENCODER_VERSION,
+          latitude: nextPoint.latitude,
+          longitude: nextPoint.longitude,
           firstVisitedAt: now,
           lastVisitedAt: now,
           visitCount: 1,

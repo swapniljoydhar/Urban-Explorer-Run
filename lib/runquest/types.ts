@@ -24,6 +24,9 @@ export type CapabilitySnapshot = {
 export type TileRecord = {
   id: string;
   encoderVersion: typeof TILE_ENCODER_VERSION;
+  /** Optional for legacy v1 records; new discoveries retain geographic centers for map rendering. */
+  latitude?: number;
+  longitude?: number;
   firstVisitedAt: number;
   lastVisitedAt: number;
   visitCount: number;

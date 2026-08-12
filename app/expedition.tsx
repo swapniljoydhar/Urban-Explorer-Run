@@ -4,7 +4,7 @@ import { useRouter } from "expo-router";
 import { useKeepAwake } from "expo-keep-awake";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 
-import { AtlasGrid } from "@/components/runquest/atlas-grid";
+import { GeographicMap } from "@/components/runquest/geographic-map";
 import { Metric, Panel, PrimaryButton, rq, SmallButton, StatePill } from "@/components/runquest/primitives";
 import { ScreenContainer } from "@/components/screen-container";
 import { formatDistance, formatDuration } from "@/lib/runquest/format";
@@ -63,8 +63,8 @@ export default function ExpeditionScreen() {
         </View>
 
         <View style={styles.mapWrap}>
-          <AtlasGrid discovered={Object.keys(state.tiles).length} active routePoints={active.route.length} />
-          <View style={styles.mapOverlay}><Text style={styles.mapEyebrow}>CURRENT OBJECTIVE</Text><Text style={styles.mapTitle}>Expand your local atlas.</Text></View>
+          <GeographicMap route={active.route} tiles={Object.values(state.tiles)} currentPoint={active.lastPoint} />
+          <View style={styles.mapOverlay}><Text style={styles.mapEyebrow}>GEOGRAPHIC EXPEDITION MAP</Text><Text style={styles.mapTitle}>Your route and atlas cells appear here.</Text></View>
         </View>
 
         <Panel style={styles.metricsPanel}>

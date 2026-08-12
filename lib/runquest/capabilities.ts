@@ -17,7 +17,7 @@ export async function inspectCapabilities(): Promise<CapabilitySnapshot> {
 
   if (Platform.OS === "web") {
     return {
-      location: limited("Foreground location", "Browser permission is required; demo expeditions remain available."),
+      location: limited("Foreground location", "The browser preview uses safe demo expeditions. Live GPS runs are available in the Android build."),
       steps: unavailable("Step sensor", "Step sensing is not exposed in this web preview."),
       background: unavailable("Background tracking", "A device build is required for background tracking."),
       haptics,

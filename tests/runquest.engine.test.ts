@@ -7,6 +7,7 @@ import {
   processLocationSample,
 } from "@/lib/runquest/engine";
 import { migrateRunQuestState } from "@/lib/runquest/migration";
+import { safelyRemoveSubscription } from "@/lib/runquest/subscriptions";
 import type { ActiveExpedition, RoutePoint } from "@/lib/runquest/types";
 
 const firstPoint: RoutePoint = { latitude: 37.7749, longitude: -122.4194, timestamp: 1_000, accuracy: 8 };
@@ -81,5 +82,18 @@ describe("RunQuest compatibility-safe engine", () => {
     expect(migrated.settings.hapticsEnabled).toBe(false);
     expect(migrated.settings.trackingMode).toBe("balanced");
     expect(migrated.workouts).toEqual([]);
+  });
+
+  it("never calls a browser location subscription removal path during cleanup", () => {
+    let removeCalls = 0;
+    safelyRemoveSubscription({ remove: () => { removeCalls += 1; } }, "web");
+    expect(removeCalls).toBe(0);
+  });
+
+  it("releases native subscriptions once and absorbs an already-disposed emitter", () => {
+    let removeCalls = 0;
+    safelyRemoveSubscription({ remove: () => { removeCalls += 1; } }, "android");
+    safelyRemoveSubscription({ remove: () => { throw new Error("already disposed"); } }, "android");
+    expect(removeCalls).toBe(1);
   });
 });

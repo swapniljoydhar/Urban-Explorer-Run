@@ -1,10 +1,12 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type PropsWithChildren } from "react";
+import { Platform } from "react-native";
 import * as Location from "expo-location";
 import { Pedometer } from "expo-sensors";
 
 import { inspectCapabilities } from "@/lib/runquest/capabilities";
 import { createDemoPoint, createWorkoutId, currentRuleset, processLocationSample } from "@/lib/runquest/engine";
 import { DEFAULT_RUNQUEST_STATE, loadRunQuestState, saveRunQuestState } from "@/lib/runquest/persistence";
+import { safelyRemoveSubscription } from "@/lib/runquest/subscriptions";
 import {
   type ActiveExpedition,
   type CapabilitySnapshot,
@@ -80,9 +82,9 @@ export function RunQuestProvider({ children }: PropsWithChildren) {
   }, []);
 
   const clearSubscriptions = useCallback(() => {
-    locationSubscription.current?.remove();
+    safelyRemoveSubscription(locationSubscription.current, Platform.OS);
     locationSubscription.current = null;
-    pedometerSubscription.current?.remove();
+    safelyRemoveSubscription(pedometerSubscription.current, Platform.OS);
     pedometerSubscription.current = null;
   }, []);
 
@@ -102,6 +104,9 @@ export function RunQuestProvider({ children }: PropsWithChildren) {
     clearSubscriptions();
     let mode: ExpeditionMode = "demo";
     try {
+      if (Platform.OS === "web") {
+        throw new Error("Web preview uses demo expeditions to avoid unsupported location subscription cleanup.");
+      }
       const permission = await Location.requestForegroundPermissionsAsync();
       const servicesEnabled = permission.status === "granted" && await Location.hasServicesEnabledAsync();
       if (servicesEnabled) {

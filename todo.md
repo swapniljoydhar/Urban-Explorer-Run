@@ -12,3 +12,6 @@
 - [x] Add deterministic unit tests for XP, levels, tile discovery, persistence, and fallback behavior
 - [x] Generate a custom RunQuest app icon and update mobile branding configuration
 - [x] Add GitHub-ready documentation, ignore rules, and project recovery instructions
+- [x] Fix web-safe cleanup of active location and sensor subscriptions when an expedition ends
+- [x] Replace the placeholder atlas-only active view with an interactive geographic map and local discovery overlay
+- [x] Add regression tests for subscription cleanup and map fallback behavior
