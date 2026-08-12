@@ -1,0 +1,85 @@
+import { describe, expect, it } from "vitest";
+
+import {
+  calculateLevel,
+  calculateXp,
+  encodeHexGridV1,
+  processLocationSample,
+} from "@/lib/runquest/engine";
+import { migrateRunQuestState } from "@/lib/runquest/migration";
+import type { ActiveExpedition, RoutePoint } from "@/lib/runquest/types";
+
+const firstPoint: RoutePoint = { latitude: 37.7749, longitude: -122.4194, timestamp: 1_000, accuracy: 8 };
+
+function expedition(): ActiveExpedition {
+  return {
+    id: "test-session",
+    startedAt: 500,
+    mode: "demo",
+    status: "active",
+    distanceMeters: 0,
+    steps: 0,
+    xpEarned: 0,
+    newTileIds: [],
+    route: [],
+    lastPoint: null,
+    demoSequence: 0,
+    notice: "test",
+  };
+}
+
+describe("RunQuest compatibility-safe engine", () => {
+  it("keeps core XP and level rules deterministic", () => {
+    expect(calculateXp(1_000, 0)).toBe(120);
+    expect(calculateXp(0, 1)).toBe(50);
+    expect(calculateXp(-1, -1)).toBe(0);
+    expect(calculateLevel(0)).toBe(1);
+    expect(calculateLevel(200)).toBe(2);
+    expect(calculateLevel(800)).toBe(3);
+  });
+
+  it("produces a stable versioned tile identity for the same coordinate", () => {
+    expect(encodeHexGridV1(37.7749, -122.4194)).toBe(encodeHexGridV1(37.7749, -122.4194));
+    expect(encodeHexGridV1(37.7749, -122.4194)).toContain("rq:hex-grid-v1:");
+  });
+
+  it("does not award duplicate discovery XP when an old event is replayed", () => {
+    const first = processLocationSample(expedition(), {}, firstPoint);
+    const replay = processLocationSample(first.nextExpedition, first.nextTiles, { ...firstPoint, timestamp: 1_100 });
+    expect(first.discoveredTileId).not.toBeNull();
+    expect(first.xpGained).toBe(50);
+    expect(replay.discoveredTileId).toBeNull();
+    expect(replay.xpGained).toBe(0);
+  });
+
+  it("does not turn weak GPS into false territory rewards", () => {
+    const weakSample = { ...firstPoint, accuracy: 100 };
+    const result = processLocationSample(expedition(), {}, weakSample);
+    expect(result.discoveredTileId).toBeNull();
+    expect(result.xpGained).toBe(0);
+    expect(Object.keys(result.nextTiles)).toHaveLength(0);
+  });
+
+  it("keeps the in-memory route window bounded during long expeditions", () => {
+    const active = expedition();
+    active.route = Array.from({ length: 250 }, (_, index) => ({
+      latitude: 37.7749 + index * 0.000001,
+      longitude: -122.4194,
+      timestamp: 1_000 + index,
+      accuracy: 6,
+    }));
+    active.lastPoint = active.route.at(-1) ?? null;
+    const result = processLocationSample(active, {}, { latitude: 37.7752, longitude: -122.4194, timestamp: 2_000, accuracy: 6 });
+    expect(result.nextExpedition.route).toHaveLength(250);
+  });
+
+  it("reads a minimal legacy state without losing safe defaults", () => {
+    const migrated = migrateRunQuestState({ profile: { totalXp: 800 }, settings: { hapticsEnabled: false } });
+    expect(migrated.version).toBe(1);
+    expect(migrated.profile.totalXp).toBe(800);
+    expect(migrated.profile.title).toBe("Neighborhood Scout");
+    expect(migrated.settings.hapticsEnabled).toBe(false);
+    expect(migrated.settings.trackingMode).toBe("balanced");
+    expect(migrated.workouts).toEqual([]);
+  });
+});

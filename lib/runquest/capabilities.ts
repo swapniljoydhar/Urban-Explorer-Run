@@ -1,0 +1,61 @@
+import { Platform } from "react-native";
+import * as Location from "expo-location";
+import { Pedometer } from "expo-sensors";
+
+import type { CapabilitySnapshot, RunQuestCapability } from "@/lib/runquest/types";
+
+const available = (label: string, detail: string): RunQuestCapability => ({ state: "AVAILABLE", label, detail });
+const limited = (label: string, detail: string): RunQuestCapability => ({ state: "LIMITED", label, detail });
+const unavailable = (label: string, detail: string): RunQuestCapability => ({ state: "UNAVAILABLE", label, detail });
+const blocked = (label: string, detail: string): RunQuestCapability => ({ state: "BLOCKED_BY_USER", label, detail });
+
+export async function inspectCapabilities(): Promise<CapabilitySnapshot> {
+  const offline = available("Local atlas", "Your expeditions, map cells, and progression are stored on this device.");
+  const haptics = Platform.OS === "web"
+    ? limited("Haptic feedback", "Visual feedback is active; haptics depend on the browser and device.")
+    : available("Haptic feedback", "Short discovery and control feedback is available when enabled.");
+
+  if (Platform.OS === "web") {
+    return {
+      location: limited("Foreground location", "Browser permission is required; demo expeditions remain available."),
+      steps: unavailable("Step sensor", "Step sensing is not exposed in this web preview."),
+      background: unavailable("Background tracking", "A device build is required for background tracking."),
+      haptics,
+      offline,
+    };
+  }
+
+  try {
+    const [permission, servicesEnabled, pedometerAvailable] = await Promise.all([
+      Location.getForegroundPermissionsAsync(),
+      Location.hasServicesEnabledAsync(),
+      Pedometer.isAvailableAsync(),
+    ]);
+
+    const location = permission.status !== "granted"
+      ? blocked("Foreground location", "Allow location when you start an expedition for live tracking. Demo mode is always available.")
+      : !servicesEnabled
+        ? limited("Foreground location", "Location services are turned off. Enable them for live tracking.")
+        : available("Foreground location", "Live foreground tracking is ready for an expedition.");
+
+    const steps = pedometerAvailable
+      ? available("Step sensor", "Hardware step updates can supplement distance tracking while the app is open.")
+      : limited("Step sensor", "This device does not expose a supported pedometer. RunQuest uses route distance instead.");
+
+    return {
+      location,
+      steps,
+      background: limited("Background tracking", "This first build prioritizes reliable foreground expeditions. Background tracking is a future capability gate."),
+      haptics,
+      offline,
+    };
+  } catch {
+    return {
+      location: limited("Foreground location", "Location status could not be checked. Demo mode remains available."),
+      steps: limited("Step sensor", "Sensor status could not be checked; route distance remains available."),
+      background: unavailable("Background tracking", "Background tracking is unavailable until device capabilities are confirmed."),
+      haptics,
+      offline,
+    };
+  }
+}
