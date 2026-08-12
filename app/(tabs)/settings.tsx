@@ -14,7 +14,7 @@ function CapabilityCard({ icon, capability }: { icon: React.ComponentProps<typeo
 }
 
 export default function SettingsScreen() {
-  const { hydrated, state, capabilities, refreshCapabilities, setTrackingMode, setHapticsEnabled, setReduceMotion, setMapStyleUrl, offlineAction, downloadCurrentOfflineRegion, removeOfflineRegion, setActiveOfflineRegion, inspectOfflineRegion, repairOfflineRegion } = useRunQuest();
+  const { hydrated, state, capabilities, refreshCapabilities, setTrackingMode, setHapticsEnabled, setReduceMotion, setMapStyleUrl, offlineAction, downloadCurrentOfflineRegion, removeOfflineRegion, setActiveOfflineRegion, inspectOfflineRegion, repairOfflineRegion, importOfflineArchive, exportOfflineArchive, removeOfflineArchive } = useRunQuest();
   const [styleDraft, setStyleDraft] = useState(OPENFREEMAP_STYLE_URL);
   const [regionInspections, setRegionInspections] = useState<Record<string, OfflineRegionInspection>>({});
   const [providerMessage, setProviderMessage] = useState<string | null>(null);
@@ -89,6 +89,14 @@ export default function SettingsScreen() {
           <Text style={styles.offlineCredit}>Existing packs retain their source metadata. New offline archives must come from a provider that explicitly permits offline use and must remain attributable and removable.</Text>
         </Panel>
 
+        <Panel style={styles.archivePanel}>
+          <View style={styles.offlineHeader}><View><Text style={styles.offlineEyebrow}>LOCAL ARCHIVE LIBRARY</Text><Text style={styles.offlineTitle}>{state.offlineArchives.length} imported archives</Text></View><MaterialIcons name="folder-special" color={rq.gold} size={26} /></View>
+          <Text style={styles.offlineBody}>Import a permitted PMTiles or MBTiles file from device storage. RunQuest copies it into its private local archive directory; it never downloads archive contents from a public tile endpoint.</Text>
+          {state.offlineArchives.map((archive) => <View key={archive.id} style={styles.archiveRow}><View style={styles.regionIcon}><MaterialIcons name={archive.format === "PMTiles" ? "layers" : "storage"} color={rq.gold} size={18} /></View><View style={styles.regionCopy}><Text style={styles.regionTitle}>{archive.name}</Text><Text style={styles.regionDetail}>{archive.format} · {formatBytes(archive.sizeBytes)} · imported {new Date(archive.importedAt).toLocaleDateString()}</Text></View><View style={styles.regionActions}><SmallButton label="Export" onPress={() => void exportOfflineArchive(archive.id)} /><SmallButton label="Remove" onPress={() => void removeOfflineArchive(archive.id)} /></View></View>)}
+          <PrimaryButton label="Import PMTiles / MBTiles" icon="file-upload" tone="slate" disabled={state.offlineArchives.length >= 8} onPress={() => void importOfflineArchive()} />
+          <Text style={styles.offlineCredit}>Archive files are validated by extension and bounded to 1 GB. Format indexing and direct MapLibre archive rendering require a later native proof-of-concept.</Text>
+        </Panel>
+
         <View style={styles.capabilityHeader}><Text style={styles.controlTitle}>This device</Text><SmallButton label="Refresh" onPress={() => void refreshCapabilities()} /></View>
         {caps ? <View style={styles.capabilityGrid}><CapabilityCard icon="my-location" capability={caps.location} /><CapabilityCard icon="directions-walk" capability={caps.steps} /><CapabilityCard icon="stay-current-portrait" capability={caps.background} /><CapabilityCard icon="vibration" capability={caps.haptics} /><CapabilityCard icon="offline-bolt" capability={caps.offline} /></View> : <Panel><Text style={styles.controlHelp}>Checking compatible capabilities…</Text></Panel>}
 
@@ -119,6 +127,7 @@ const styles = StyleSheet.create({
   switchBody: { color: rq.mist, fontSize: 12, lineHeight: 17, fontWeight: "500" },
   switchDivider: { height: 1, backgroundColor: rq.border },
   offlinePanel: { gap: 11, backgroundColor: rq.teal + "0F", borderColor: rq.teal + "45" },
+  archivePanel: { gap: 11, backgroundColor: rq.gold + "0F", borderColor: rq.gold + "45" },
   offlineHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 12 },
   offlineEyebrow: { color: rq.teal, fontSize: 10, letterSpacing: 1, fontWeight: "900" },
   offlineTitle: { color: rq.cloud, fontSize: 16, fontWeight: "900", marginTop: 3 },
@@ -137,6 +146,7 @@ const styles = StyleSheet.create({
   regionDetail: { color: rq.mist, fontSize: 10, lineHeight: 14, fontWeight: "600" },
   regionStatus: { color: rq.teal, fontSize: 10, lineHeight: 14, fontWeight: "700" },
   regionActions: { alignItems: "flex-end", gap: 5 },
+  archiveRow: { flexDirection: "row", alignItems: "flex-start", gap: 9, paddingTop: 10, borderTopWidth: 1, borderTopColor: rq.border },
   offlineCredit: { color: rq.mist, fontSize: 10, lineHeight: 15, fontWeight: "500" },
   capabilityHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   capabilityGrid: { gap: 10 },

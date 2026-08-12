@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type PropsWithChildren } from "react";
 import { Platform } from "react-native";
+import * as DocumentPicker from "expo-document-picker";
 import { Pedometer } from "expo-sensors";
 
 import { inspectCapabilities } from "@/lib/runquest/capabilities";
@@ -9,7 +10,7 @@ import { createDemoPoint, createWorkoutId, currentRuleset, processLocationSample
 import { DEFAULT_RUNQUEST_STATE, loadRunQuestState, saveRunQuestState } from "@/lib/runquest/persistence";
 import { safelyRemoveSubscription } from "@/lib/runquest/subscriptions";
 import { openLocation, type OpenLocationListener } from "@/lib/runquest/open-location";
-import { inspectOfflineRegion, offlineRegionStorageExists, removeOfflineRegion, type OfflineRegionInspection } from "@/lib/runquest/offline-packages";
+import { importOfflineArchiveAsset, inspectOfflineRegion, offlineRegionStorageExists, removeOfflineArchive, removeOfflineRegion, shareOfflineArchive, type OfflineRegionInspection } from "@/lib/runquest/offline-packages";
 import {
   type ActiveExpedition,
   type CapabilitySnapshot,
@@ -45,6 +46,9 @@ type RunQuestContextValue = {
   setActiveOfflineRegion: (id: string | null) => void;
   inspectOfflineRegion: (id: string) => Promise<OfflineRegionInspection | null>;
   repairOfflineRegion: (id: string) => Promise<void>;
+  importOfflineArchive: () => Promise<void>;
+  exportOfflineArchive: (id: string) => Promise<void>;
+  removeOfflineArchive: (id: string) => Promise<void>;
 };
 
 const RunQuestContext = createContext<RunQuestContextValue | null>(null);
@@ -336,6 +340,41 @@ export function RunQuestProvider({ children }: PropsWithChildren) {
     setOfflineAction({ state: "ERROR", completed: inspection.presentTiles, total: inspection.expectedTiles, message: "This pack is incomplete. No files were changed; a permitted offline archive source is required for repair." });
   }, [inspectOfflineRegionById]);
 
+  const importOfflineArchive = useCallback(async () => {
+    try {
+      const result = await DocumentPicker.getDocumentAsync({ type: ["application/octet-stream", "application/x-sqlite3", "*/*"], copyToCacheDirectory: true });
+      if (result.canceled) return;
+      const archive = await importOfflineArchiveAsset(result.assets[0]);
+      commitState({ ...stateRef.current, offlineArchives: [archive, ...stateRef.current.offlineArchives].slice(0, 8) }, true);
+      setOfflineAction({ state: "IDLE", completed: 1, total: 1, message: `${archive.format} archive imported locally.` });
+    } catch (error) {
+      setOfflineAction({ state: "ERROR", completed: 0, total: 0, message: error instanceof Error ? error.message : "The archive could not be imported." });
+    }
+  }, [commitState]);
+
+  const exportOfflineArchive = useCallback(async (id: string) => {
+    const archive = stateRef.current.offlineArchives.find((candidate) => candidate.id === id);
+    if (!archive) return;
+    try {
+      await shareOfflineArchive(archive);
+      setOfflineAction({ state: "IDLE", completed: 1, total: 1, message: "Archive export sheet opened." });
+    } catch (error) {
+      setOfflineAction({ state: "ERROR", completed: 0, total: 0, message: error instanceof Error ? error.message : "The archive could not be exported." });
+    }
+  }, []);
+
+  const removeImportedOfflineArchive = useCallback(async (id: string) => {
+    const archive = stateRef.current.offlineArchives.find((candidate) => candidate.id === id);
+    if (!archive) return;
+    try {
+      await removeOfflineArchive(archive);
+      commitState({ ...stateRef.current, offlineArchives: stateRef.current.offlineArchives.filter((candidate) => candidate.id !== id) }, true);
+      setOfflineAction({ state: "IDLE", completed: 0, total: 0, message: "Imported archive removed." });
+    } catch (error) {
+      setOfflineAction({ state: "ERROR", completed: 0, total: 0, message: error instanceof Error ? error.message : "The archive could not be removed." });
+    }
+  }, [commitState]);
+
   useEffect(() => () => {
     clearSubscriptions();
     if (persistTimer.current) clearTimeout(persistTimer.current);
@@ -366,7 +405,10 @@ export function RunQuestProvider({ children }: PropsWithChildren) {
     setActiveOfflineRegion,
     inspectOfflineRegion: inspectOfflineRegionById,
     repairOfflineRegion,
-  }), [activeExpedition, capabilities, downloadCurrentOfflineRegion, endExpedition, hydrated, inspectOfflineRegionById, latestReport, offlineAction, pauseExpedition, persistenceState, recordDemoDiscovery, refreshCapabilities, removeOfflineMapRegion, repairOfflineRegion, resumeExpedition, setActiveOfflineRegion, setMapStyleUrl, startExpedition, state, updateSettings]);
+    importOfflineArchive,
+    exportOfflineArchive,
+    removeOfflineArchive: removeImportedOfflineArchive,
+  }), [activeExpedition, capabilities, downloadCurrentOfflineRegion, endExpedition, exportOfflineArchive, hydrated, importOfflineArchive, inspectOfflineRegionById, latestReport, offlineAction, pauseExpedition, persistenceState, recordDemoDiscovery, refreshCapabilities, removeOfflineMapRegion, removeImportedOfflineArchive, repairOfflineRegion, resumeExpedition, setActiveOfflineRegion, setMapStyleUrl, startExpedition, state, updateSettings]);
 
   return <RunQuestContext.Provider value={value}>{children}</RunQuestContext.Provider>;
 }

@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { getDailyContract } from "@/lib/runquest/contracts";
 import { evaluateNewAchievements } from "@/lib/runquest/achievements";
 import { createOfflineRegion, getActiveOfflineRegion, offlineTileCoordinates } from "@/lib/runquest/offline-regions";
+import { getOfflineArchiveFormat } from "@/lib/runquest/archive-formats";
 import { calculateLevel, calculateXp, encodeHexGridV1, processLocationSample } from "@/lib/runquest/engine";
 import { migrateRunQuestState } from "@/lib/runquest/migration";
 import { normalizeMapStyleUrl, OPENFREEMAP_STYLE_URL } from "@/lib/runquest/map-providers";
@@ -101,6 +102,7 @@ describe("RunQuest compatibility-safe engine", () => {
     expect(migrated.settings.hapticsEnabled).toBe(false);
     expect(migrated.settings.trackingMode).toBe("balanced");
     expect(migrated.activeOfflineRegionId).toBeNull();
+    expect(migrated.offlineArchives).toEqual([]);
     expect(migrated.workouts).toEqual([]);
   });
 
@@ -179,6 +181,13 @@ describe("RunQuest compatibility-safe engine", () => {
     expect(migrateRunQuestState({}).offlineRegions).toEqual([]);
     const oversized = Array.from({ length: 5 }, (_, index) => ({ id: `atlas-14-${index}-${index}`, latitude: 1, longitude: 1, zoom: 14, tileCount: 9, downloadedAt: 1, provider: "OpenStreetMap" }));
     expect(migrateRunQuestState({ offlineRegions: oversized }).offlineRegions).toEqual([]);
+  });
+
+  it("accepts only PMTiles and MBTiles archive names", () => {
+    expect(getOfflineArchiveFormat("city.PMTILES")).toBe("PMTiles");
+    expect(getOfflineArchiveFormat("region.mbtiles")).toBe("MBTiles");
+    expect(getOfflineArchiveFormat("archive.zip")).toBeNull();
+    expect(getOfflineArchiveFormat("archive")).toBeNull();
   });
 
   it("resolves the selected pack and falls back safely for legacy state", () => {

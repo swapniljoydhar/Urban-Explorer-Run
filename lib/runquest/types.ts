@@ -95,6 +95,16 @@ export type OfflineMapRegion = {
   provider: "OpenStreetMap" | "OpenFreeMap";
 };
 
+export type OfflineArchiveRecord = {
+  id: string;
+  name: string;
+  format: "PMTiles" | "MBTiles";
+  uri: string;
+  sizeBytes: number;
+  importedAt: number;
+  source: string;
+};
+
 export type RunQuestState = {
   version: typeof RUNQUEST_STATE_VERSION;
   profile: PlayerProfile;
@@ -103,6 +113,7 @@ export type RunQuestState = {
   settings: RunQuestSettings;
   offlineRegions: OfflineMapRegion[];
   activeOfflineRegionId: string | null;
+  offlineArchives: OfflineArchiveRecord[];
 };
 
 export type ActiveExpedition = {

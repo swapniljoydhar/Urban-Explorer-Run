@@ -62,6 +62,15 @@ const persistedStateSchema = z.object({
     provider: z.enum(["OpenStreetMap", "OpenFreeMap"]),
   })).max(4).optional(),
   activeOfflineRegionId: z.string().regex(/^atlas-\d+-\d+-\d+$/).nullable().optional(),
+  offlineArchives: z.array(z.object({
+    id: z.string().regex(/^archive-[a-z0-9]+$/),
+    name: z.string().min(1).max(128),
+    format: z.enum(["PMTiles", "MBTiles"]),
+    uri: z.string().max(2048),
+    sizeBytes: finiteNumber.int().positive().max(1024 * 1024 * 1024),
+    importedAt: finiteNumber.nonnegative(),
+    source: z.string().min(1).max(64),
+  })).max(8).optional(),
 }).passthrough();
 
 export function migrateRunQuestState(value: unknown): RunQuestState {
@@ -76,5 +85,7 @@ export function migrateRunQuestState(value: unknown): RunQuestState {
     workouts: Array.isArray(candidate.workouts) ? candidate.workouts.slice(0, 200).map((workout) => ({ ...workout, contractRewardXp: workout.contractRewardXp ?? 0 })) : [],
     settings: { ...DEFAULT_RUNQUEST_STATE.settings, ...candidate.settings },
     offlineRegions: candidate.offlineRegions ?? [],
+    activeOfflineRegionId: candidate.activeOfflineRegionId ?? null,
+    offlineArchives: candidate.offlineArchives ?? [],
   };
 }

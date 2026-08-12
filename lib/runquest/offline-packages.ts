@@ -1,12 +1,16 @@
 import { Platform } from "react-native";
 import * as FileSystem from "expo-file-system/legacy";
 import * as Network from "expo-network";
+import * as Sharing from "expo-sharing";
 
 import { createOfflineRegion, offlineTileCoordinates } from "@/lib/runquest/offline-regions";
-import type { OfflineMapRegion } from "@/lib/runquest/types";
+import { getOfflineArchiveFormat } from "@/lib/runquest/archive-formats";
+import type { OfflineArchiveRecord, OfflineMapRegion } from "@/lib/runquest/types";
 
 const CACHE_ROOT = "runquest-atlas/";
 const MINIMUM_FREE_BYTES = 10 * 1024 * 1024;
+const MAX_ARCHIVE_BYTES = 1024 * 1024 * 1024;
+const ARCHIVE_ROOT = "runquest-archives/";
 
 function rootDirectory(): string {
   if (!FileSystem.documentDirectory) throw new Error("This device does not expose persistent package storage.");
@@ -99,4 +103,47 @@ export async function downloadOfflineRegion(
 export async function removeOfflineRegion(region: OfflineMapRegion): Promise<void> {
   if (Platform.OS === "web") return;
   await FileSystem.deleteAsync(regionDirectory(region), { idempotent: true });
+}
+
+function archiveDirectory(): string {
+  if (!FileSystem.documentDirectory) throw new Error("This device does not expose persistent archive storage.");
+  return `${FileSystem.documentDirectory}${ARCHIVE_ROOT}`;
+}
+
+function safeArchiveName(name: string, format: OfflineArchiveRecord["format"]): string {
+  const base = name.replace(/[^a-zA-Z0-9._-]/g, "_").slice(0, 96) || `runquest-archive.${format.toLowerCase()}`;
+  return base.toLowerCase().endsWith(`.${format.toLowerCase()}`) ? base : `${base}.${format.toLowerCase()}`;
+}
+
+export async function importOfflineArchiveAsset(asset: { uri: string; name: string; size?: number | null }): Promise<OfflineArchiveRecord> {
+  if (Platform.OS === "web") throw new Error("Archive imports are available in the Android and iOS app, not the browser preview.");
+  const format = getOfflineArchiveFormat(asset.name);
+  if (!format) throw new Error("Choose a .pmtiles or .mbtiles archive.");
+  if (typeof asset.size === "number" && asset.size > MAX_ARCHIVE_BYTES) throw new Error("Archives larger than 1 GB are not supported on this device.");
+  const directory = archiveDirectory();
+  await FileSystem.makeDirectoryAsync(directory, { intermediates: true });
+  const id = `archive-${Date.now().toString(36)}`;
+  const fileName = `${id}-${safeArchiveName(asset.name, format)}`;
+  const destination = `${directory}${fileName}`;
+  await FileSystem.copyAsync({ from: asset.uri, to: destination });
+  const info = await FileSystem.getInfoAsync(destination);
+  if (!info.exists || typeof info.size !== "number" || info.size <= 0) throw new Error("The selected archive could not be verified after copying.");
+  if (info.size > MAX_ARCHIVE_BYTES) {
+    await FileSystem.deleteAsync(destination, { idempotent: true });
+    throw new Error("Archives larger than 1 GB are not supported on this device.");
+  }
+  return { id, name: asset.name, format, uri: destination, sizeBytes: info.size, importedAt: Date.now(), source: "Local file import" };
+}
+
+export async function removeOfflineArchive(archive: OfflineArchiveRecord): Promise<void> {
+  if (Platform.OS === "web") return;
+  await FileSystem.deleteAsync(archive.uri, { idempotent: true });
+}
+
+export async function shareOfflineArchive(archive: OfflineArchiveRecord): Promise<void> {
+  if (Platform.OS === "web") throw new Error("Archive export is available in the Android and iOS app, not the browser preview.");
+  if (!(await Sharing.isAvailableAsync())) throw new Error("File sharing is not available on this device.");
+  const info = await FileSystem.getInfoAsync(archive.uri);
+  if (!info.exists) throw new Error("The archive file is no longer available to export.");
+  await Sharing.shareAsync(archive.uri, { dialogTitle: `Export ${archive.name}`, mimeType: archive.format === "PMTiles" ? "application/octet-stream" : "application/x-sqlite3" });
 }

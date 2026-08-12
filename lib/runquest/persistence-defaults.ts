@@ -8,4 +8,5 @@ export const DEFAULT_RUNQUEST_STATE: RunQuestState = {
   settings: { trackingMode: "balanced", hapticsEnabled: true, reduceMotion: false, mapProvider: "OpenFreeMap", mapStyleUrl: "https://tiles.openfreemap.org/styles/liberty" },
   offlineRegions: [],
   activeOfflineRegionId: null,
+  offlineArchives: [],
 };

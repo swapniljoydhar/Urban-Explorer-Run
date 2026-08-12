@@ -70,3 +70,8 @@ Approval received: MapLibre marker milestone only. Do not begin offline archive,
 - [x] Validate offline-pack management with pnpm check, pnpm test, pnpm lint, Android/web exports, and preview/device verification before checkpoint
 
 Approval received: offline-pack management milestone only. Do not begin sensor fusion, archive-format migration, cleanup, or unrelated native-app work in this milestone.
+- [x] Implement approved local offline-pack archive import/export with validated PMTiles/MBTiles boundaries, reversible file handling, and provider/source metadata preservation
+- [x] Add document-picker and filesystem compatibility handling for Android API 24, web fallback, cancellation, corrupt/unsupported archives, and storage limits
+- [x] Add deterministic archive-header/metadata validation tests and run pnpm check, pnpm test, pnpm lint, Android/web exports, and preview/device verification before checkpoint
+
+Approval received: local archive import/export milestone only. Do not introduce public-tile prefetch, cloud sync, background services, or unrelated native-app architecture.
