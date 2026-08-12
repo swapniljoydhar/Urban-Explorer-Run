@@ -21,3 +21,5 @@
 - [x] Add safer data validation, rate-limited event handling, and recovery guards without breaking saved state
 - [x] Improve map, atlas, and history presentation for a more immersive game-quality experience
 - [x] Validate the strengthened app against compatibility, performance, and regression limits
+- [x] Restore and verify the development server after the repeated preview interruption
+- [x] Push the completed RunQuest source tree to the Urban-Explorer-Run GitHub repository safely
