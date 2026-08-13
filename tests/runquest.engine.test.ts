@@ -5,6 +5,7 @@ import { evaluateNewAchievements } from "@/lib/runquest/achievements";
 import { createOfflineRegion, getActiveOfflineRegion, offlineTileCoordinates } from "@/lib/runquest/offline-regions";
 import { getOfflineArchiveFormat } from "@/lib/runquest/archive-formats";
 import { getExpeditionStory, getNatureMoment } from "@/lib/runquest/nature";
+import { classifyPMTilesTerrain, parsePMTilesV3Header } from "@/lib/runquest/pmtiles-terrain";
 import { calculateLevel, calculateXp, encodeHexGridV1, processLocationSample } from "@/lib/runquest/engine";
 import { migrateRunQuestState } from "@/lib/runquest/migration";
 import { normalizeMapStyleUrl, OPENFREEMAP_STYLE_URL } from "@/lib/runquest/map-providers";
@@ -30,6 +31,27 @@ function expedition(): ActiveExpedition {
     demoSequence: 0,
     notice: "test",
   };
+}
+
+function writeUint32(bytes: Uint8Array, offset: number, value: number) {
+  bytes[offset] = value & 255;
+  bytes[offset + 1] = (value >>> 8) & 255;
+  bytes[offset + 2] = (value >>> 16) & 255;
+  bytes[offset + 3] = (value >>> 24) & 255;
+}
+
+function terrainPMTilesFixture(metadata: Record<string, unknown> = { encoding: "terrarium", name: "Local ridge", attribution: "Example terrain" }) {
+  const metadataBytes = new TextEncoder().encode(JSON.stringify(metadata));
+  const metadataOffset = 128;
+  const archiveBytes = metadataOffset + metadataBytes.length + 1;
+  const header = new Uint8Array(127);
+  "PMTiles".split("").forEach((character, index) => { header[index] = character.charCodeAt(0); });
+  header[7] = 3;
+  writeUint32(header, 8, 127); writeUint32(header, 16, 1);
+  writeUint32(header, 24, metadataOffset); writeUint32(header, 32, metadataBytes.length);
+  writeUint32(header, 56, metadataOffset + metadataBytes.length); writeUint32(header, 64, 1);
+  header[99] = 2; header[100] = 0; header[101] = 14;
+  return { header, metadataBytes, archiveBytes };
 }
 
 describe("RunQuest compatibility-safe engine", () => {
@@ -215,6 +237,20 @@ describe("RunQuest compatibility-safe engine", () => {
       settings: { terrainOverlayEnabled: true },
     });
     expect(enabled.settings.terrainOverlayEnabled).toBe(true);
+  });
+
+  it("validates bounded PMTiles v3 Terrarium metadata without reading tile payloads", () => {
+    const fixture = terrainPMTilesFixture();
+    const header = parsePMTilesV3Header(fixture.header, fixture.archiveBytes);
+    expect(header.status).toBe("NOT_TERRAIN");
+    expect(header.header?.metadataLength).toBe(fixture.metadataBytes.length);
+    expect(classifyPMTilesTerrain(header.header!, fixture.metadataBytes).status).toBe("VALID_TERRAIN");
+    const nonTerrainFixture = terrainPMTilesFixture({ encoding: "mapbox" });
+    const nonTerrainHeader = parsePMTilesV3Header(nonTerrainFixture.header, nonTerrainFixture.archiveBytes);
+    expect(classifyPMTilesTerrain(nonTerrainHeader.header!, nonTerrainFixture.metadataBytes).status).toBe("NOT_TERRAIN");
+    expect(parsePMTilesV3Header(new Uint8Array(6), 6).status).toBe("TRUNCATED");
+    const badMagic = new Uint8Array(fixture.header); badMagic[0] = 0;
+    expect(parsePMTilesV3Header(badMagic, fixture.archiveBytes).status).toBe("INVALID_HEADER");
   });
 
   it("resolves the selected pack and falls back safely for legacy state", () => {

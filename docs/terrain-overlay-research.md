@@ -21,3 +21,12 @@ The AWS Terrain Tiles registry describes an open dataset of bare-earth elevation
 [2]: https://maplibre.org/maplibre-react-native/docs/components/sources/raster-dem-source/ "MapLibre React Native: RasterDEMSource"
 [3]: https://registry.opendata.aws/terrain-tiles/ "AWS Open Data Registry: Terrain Tiles"
 [4]: https://github.com/tilezen/joerd/blob/master/docs/use-service.md "Tilezen Joerd: Get Started with Terrain Tiles"
+
+## PMTiles terrain-header validation rules
+
+The PMTiles v3 specification defines a fixed 127-byte header beginning with the UTF-8 `PMTiles` magic and version byte `3`. It records metadata offset/length, tile type, zoom range, bounds, and compression. The JSON metadata can declare `encoding: "terrarium"` for lossless raster terrain tiles. [5]
+
+RunQuest will read at most the header plus a capped metadata prefix. It will reject a file that has an invalid magic/version, impossible section bounds, a metadata block above the app cap, non-raster tile type, invalid zoom range, malformed JSON metadata, or metadata that does not declare Terrarium terrain encoding. This is an **integrity classifier**, not a proof that every tile is valid and not a renderer. [5] [6]
+
+[5]: https://github.com/protomaps/PMTiles/blob/main/spec/v3/spec.md "PMTiles Version 3 Specification"
+[6]: https://docs.protomaps.com/pmtiles/ "Protomaps PMTiles Concepts"

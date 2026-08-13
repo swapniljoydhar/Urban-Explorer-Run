@@ -10,7 +10,7 @@ import { createDemoPoint, createWorkoutId, currentRuleset, processLocationSample
 import { DEFAULT_RUNQUEST_STATE, loadRunQuestState, saveRunQuestState } from "@/lib/runquest/persistence";
 import { safelyRemoveSubscription } from "@/lib/runquest/subscriptions";
 import { openLocation, type OpenLocationListener } from "@/lib/runquest/open-location";
-import { importOfflineArchiveAsset, inspectOfflineRegion, offlineRegionStorageExists, removeOfflineArchive, removeOfflineRegion, shareOfflineArchive, type OfflineRegionInspection } from "@/lib/runquest/offline-packages";
+import { importOfflineArchiveAsset, inspectOfflineRegion, inspectOfflineTerrainArchive, offlineRegionStorageExists, removeOfflineArchive, removeOfflineRegion, shareOfflineArchive, type OfflineRegionInspection, type OfflineTerrainArchiveInspection } from "@/lib/runquest/offline-packages";
 import {
   type ActiveExpedition,
   type CapabilitySnapshot,
@@ -50,6 +50,7 @@ type RunQuestContextValue = {
   importOfflineArchive: () => Promise<void>;
   exportOfflineArchive: (id: string) => Promise<void>;
   removeOfflineArchive: (id: string) => Promise<void>;
+  inspectOfflineTerrainArchive: (id: string) => Promise<OfflineTerrainArchiveInspection | null>;
 };
 
 const RunQuestContext = createContext<RunQuestContextValue | null>(null);
@@ -341,6 +342,11 @@ export function RunQuestProvider({ children }: PropsWithChildren) {
     setOfflineAction({ state: "ERROR", completed: inspection.presentTiles, total: inspection.expectedTiles, message: "This pack is incomplete. No files were changed; a permitted offline archive source is required for repair." });
   }, [inspectOfflineRegionById]);
 
+  const inspectOfflineTerrainArchiveById = useCallback(async (id: string) => {
+    const archive = stateRef.current.offlineArchives.find((candidate) => candidate.id === id);
+    return archive ? inspectOfflineTerrainArchive(archive) : null;
+  }, []);
+
   const importOfflineArchive = useCallback(async () => {
     try {
       const result = await DocumentPicker.getDocumentAsync({ type: ["application/octet-stream", "application/x-sqlite3", "*/*"], copyToCacheDirectory: true });
@@ -410,7 +416,8 @@ export function RunQuestProvider({ children }: PropsWithChildren) {
     importOfflineArchive,
     exportOfflineArchive,
     removeOfflineArchive: removeImportedOfflineArchive,
-  }), [activeExpedition, capabilities, downloadCurrentOfflineRegion, endExpedition, exportOfflineArchive, hydrated, importOfflineArchive, inspectOfflineRegionById, latestReport, offlineAction, pauseExpedition, persistenceState, recordDemoDiscovery, refreshCapabilities, removeOfflineMapRegion, removeImportedOfflineArchive, repairOfflineRegion, resumeExpedition, setActiveOfflineRegion, setMapStyleUrl, startExpedition, state, updateSettings]);
+    inspectOfflineTerrainArchive: inspectOfflineTerrainArchiveById,
+  }), [activeExpedition, capabilities, downloadCurrentOfflineRegion, endExpedition, exportOfflineArchive, hydrated, importOfflineArchive, inspectOfflineRegionById, inspectOfflineTerrainArchiveById, latestReport, offlineAction, pauseExpedition, persistenceState, recordDemoDiscovery, refreshCapabilities, removeOfflineMapRegion, removeImportedOfflineArchive, repairOfflineRegion, resumeExpedition, setActiveOfflineRegion, setMapStyleUrl, startExpedition, state, updateSettings]);
 
   return <RunQuestContext.Provider value={value}>{children}</RunQuestContext.Provider>;
 }

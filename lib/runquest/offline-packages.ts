@@ -1,16 +1,20 @@
 import { Platform } from "react-native";
+import { File } from "expo-file-system";
 import * as FileSystem from "expo-file-system/legacy";
 import * as Network from "expo-network";
 import * as Sharing from "expo-sharing";
 
 import { createOfflineRegion, offlineTileCoordinates } from "@/lib/runquest/offline-regions";
 import { getOfflineArchiveFormat } from "@/lib/runquest/archive-formats";
+import { classifyPMTilesTerrain, parsePMTilesV3Header, type PMTilesTerrainInspection } from "@/lib/runquest/pmtiles-terrain";
 import type { OfflineArchiveRecord, OfflineMapRegion } from "@/lib/runquest/types";
 
 const CACHE_ROOT = "runquest-atlas/";
 const MINIMUM_FREE_BYTES = 10 * 1024 * 1024;
 const MAX_ARCHIVE_BYTES = 1024 * 1024 * 1024;
 const ARCHIVE_ROOT = "runquest-archives/";
+
+export type OfflineTerrainArchiveInspection = PMTilesTerrainInspection | { status: "MISSING" | "WEB_UNAVAILABLE"; message: string };
 
 function rootDirectory(): string {
   if (!FileSystem.documentDirectory) throw new Error("This device does not expose persistent package storage.");
@@ -138,6 +142,26 @@ export async function importOfflineArchiveAsset(asset: { uri: string; name: stri
 export async function removeOfflineArchive(archive: OfflineArchiveRecord): Promise<void> {
   if (Platform.OS === "web") return;
   await FileSystem.deleteAsync(archive.uri, { idempotent: true });
+}
+
+/** Reads only the fixed PMTiles header and a capped metadata block; tile payloads are never opened. */
+export async function inspectOfflineTerrainArchive(archive: OfflineArchiveRecord): Promise<OfflineTerrainArchiveInspection> {
+  if (Platform.OS === "web") return { status: "WEB_UNAVAILABLE", message: "Terrain archive inspection is available in Android and iOS builds, not the browser preview." };
+  if (archive.format !== "PMTiles") return { status: "NOT_TERRAIN", message: "Only PMTiles archives can carry the validated Terrarium terrain metadata used by RunQuest." };
+  const file = new File(archive.uri);
+  if (!file.exists || file.size <= 0) return { status: "MISSING", message: "The imported PMTiles file is no longer available on this device." };
+  const handle = file.open();
+  try {
+    const headerBytes = handle.readBytes(127);
+    const headerResult = parsePMTilesV3Header(headerBytes, file.size);
+    if (!headerResult.header) return headerResult;
+    handle.offset = headerResult.header.metadataOffset;
+    return classifyPMTilesTerrain(headerResult.header, handle.readBytes(headerResult.header.metadataLength));
+  } catch {
+    return { status: "INVALID_HEADER", message: "The PMTiles header could not be read safely." };
+  } finally {
+    handle.close();
+  }
 }
 
 export async function shareOfflineArchive(archive: OfflineArchiveRecord): Promise<void> {

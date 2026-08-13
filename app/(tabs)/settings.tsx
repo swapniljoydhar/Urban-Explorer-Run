@@ -5,7 +5,7 @@ import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { LoadingState, Panel, PrimaryButton, rq, SmallButton, StatePill } from "@/components/runquest/primitives";
 import { ScreenContainer } from "@/components/screen-container";
 import { useRunQuest } from "@/lib/runquest/context";
-import type { OfflineRegionInspection } from "@/lib/runquest/offline-packages";
+import type { OfflineRegionInspection, OfflineTerrainArchiveInspection } from "@/lib/runquest/offline-packages";
 import type { RunQuestCapability } from "@/lib/runquest/types";
 import { getTileProvider, normalizeMapStyleUrl, OPENFREEMAP_ATTRIBUTION, OPENFREEMAP_STYLE_URL } from "@/lib/runquest/map-providers";
 
@@ -14,9 +14,10 @@ function CapabilityCard({ icon, capability }: { icon: React.ComponentProps<typeo
 }
 
 export default function SettingsScreen() {
-  const { hydrated, state, capabilities, refreshCapabilities, setTrackingMode, setHapticsEnabled, setReduceMotion, setMapStyleUrl, setTerrainOverlayEnabled, offlineAction, downloadCurrentOfflineRegion, removeOfflineRegion, setActiveOfflineRegion, inspectOfflineRegion, repairOfflineRegion, importOfflineArchive, exportOfflineArchive, removeOfflineArchive } = useRunQuest();
+  const { hydrated, state, capabilities, refreshCapabilities, setTrackingMode, setHapticsEnabled, setReduceMotion, setMapStyleUrl, setTerrainOverlayEnabled, offlineAction, downloadCurrentOfflineRegion, removeOfflineRegion, setActiveOfflineRegion, inspectOfflineRegion, repairOfflineRegion, importOfflineArchive, exportOfflineArchive, removeOfflineArchive, inspectOfflineTerrainArchive } = useRunQuest();
   const [styleDraft, setStyleDraft] = useState(OPENFREEMAP_STYLE_URL);
   const [regionInspections, setRegionInspections] = useState<Record<string, OfflineRegionInspection>>({});
+  const [terrainInspections, setTerrainInspections] = useState<Record<string, OfflineTerrainArchiveInspection>>({});
   const [providerMessage, setProviderMessage] = useState<string | null>(null);
   useEffect(() => {
     if (hydrated) setStyleDraft(state.settings.mapStyleUrl);
@@ -32,6 +33,10 @@ export default function SettingsScreen() {
   const repairRegion = async (id: string) => {
     await repairOfflineRegion(id);
     await verifyRegion(id);
+  };
+  const verifyTerrainArchive = async (id: string) => {
+    const inspection = await inspectOfflineTerrainArchive(id);
+    if (inspection) setTerrainInspections((previous) => ({ ...previous, [id]: inspection }));
   };
   const saveProvider = () => {
     const normalized = normalizeMapStyleUrl(styleDraft);
@@ -94,9 +99,9 @@ export default function SettingsScreen() {
         <Panel style={styles.archivePanel}>
           <View style={styles.offlineHeader}><View><Text style={styles.offlineEyebrow}>LOCAL ARCHIVE LIBRARY</Text><Text style={styles.offlineTitle}>{state.offlineArchives.length} imported archives</Text></View><MaterialIcons name="folder-special" color={rq.gold} size={26} /></View>
           <Text style={styles.offlineBody}>Import a permitted PMTiles or MBTiles file from device storage. RunQuest copies it into its private local archive directory; it never downloads archive contents from a public tile endpoint.</Text>
-          {state.offlineArchives.map((archive) => <View key={archive.id} style={styles.archiveRow}><View style={styles.regionIcon}><MaterialIcons name={archive.format === "PMTiles" ? "layers" : "storage"} color={rq.gold} size={18} /></View><View style={styles.regionCopy}><Text style={styles.regionTitle}>{archive.name}</Text><Text style={styles.regionDetail}>{archive.format} · {formatBytes(archive.sizeBytes)} · imported {new Date(archive.importedAt).toLocaleDateString()}</Text></View><View style={styles.regionActions}><SmallButton label="Export" onPress={() => void exportOfflineArchive(archive.id)} /><SmallButton label="Remove" onPress={() => void removeOfflineArchive(archive.id)} /></View></View>)}
+          {state.offlineArchives.map((archive) => { const terrain = terrainInspections[archive.id]; return <View key={archive.id} style={styles.archiveRow}><View style={styles.regionIcon}><MaterialIcons name={archive.format === "PMTiles" ? "layers" : "storage"} color={rq.gold} size={18} /></View><View style={styles.regionCopy}><Text style={styles.regionTitle}>{archive.name}</Text><Text style={styles.regionDetail}>{archive.format} · {formatBytes(archive.sizeBytes)} · imported {new Date(archive.importedAt).toLocaleDateString()}</Text>{terrain ? <Text style={styles.regionStatus}>{terrain.status} · {terrain.message}</Text> : null}</View><View style={styles.regionActions}>{archive.format === "PMTiles" ? <SmallButton label="Check terrain" onPress={() => void verifyTerrainArchive(archive.id)} /> : null}<SmallButton label="Export" onPress={() => void exportOfflineArchive(archive.id)} /><SmallButton label="Remove" onPress={() => void removeOfflineArchive(archive.id)} /></View></View>; })}
           <PrimaryButton label="Import PMTiles / MBTiles" icon="file-upload" tone="slate" disabled={state.offlineArchives.length >= 8} onPress={() => void importOfflineArchive()} />
-          <Text style={styles.offlineCredit}>Archive files are validated by extension and bounded to 1 GB. Format indexing and direct MapLibre archive rendering require a later native proof-of-concept.</Text>
+          <Text style={styles.offlineCredit}>PMTiles terrain checks read only the 127-byte v3 header and a capped metadata block. They validate Terrarium metadata but do not unpack, render, or verify every tile payload.</Text>
         </Panel>
 
         <View style={styles.capabilityHeader}><Text style={styles.controlTitle}>This device</Text><SmallButton label="Refresh" onPress={() => void refreshCapabilities()} /></View>

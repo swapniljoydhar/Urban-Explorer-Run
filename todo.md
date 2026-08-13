@@ -90,3 +90,9 @@ Program approval received: continue iterative RunQuest refinement. Each mileston
 - [x] Validate the terrain milestone with deterministic tests, Android/web exports, mobile visual review, and performance checks before checkpoint
 
 Single-player rule confirmed: RunQuest must not add leaderboards, matchmaking, social competition, cloud profiles, or multiplayer dependencies.
+
+- [x] Implement bounded local PMTiles terrain-header and metadata validation before any archive is classified as offline terrain data
+- [x] Surface PMTiles terrain integrity status in the local archive library without unpacking archive tile payloads or adding network downloads
+- [x] Add deterministic valid, invalid, truncated, unsupported, and non-terrain PMTiles header tests; validate Android/web builds before checkpoint
+
+Approval received: PMTiles terrain-header integrity milestone only. Do not begin direct archive rendering, public-tile prefetch, cloud sync, or multiplayer work.
