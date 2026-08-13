@@ -14,7 +14,7 @@ function CapabilityCard({ icon, capability }: { icon: React.ComponentProps<typeo
 }
 
 export default function SettingsScreen() {
-  const { hydrated, state, capabilities, refreshCapabilities, setTrackingMode, setHapticsEnabled, setReduceMotion, setMapStyleUrl, setTerrainOverlayEnabled, offlineAction, downloadCurrentOfflineRegion, removeOfflineRegion, setActiveOfflineRegion, inspectOfflineRegion, repairOfflineRegion, importOfflineArchive, exportOfflineArchive, removeOfflineArchive, inspectOfflineTerrainArchive } = useRunQuest();
+  const { hydrated, state, capabilities, refreshCapabilities, setTrackingMode, setHapticsEnabled, setReduceMotion, setMapStyleUrl, setTerrainOverlayEnabled, setPaceCoachingEnabled, setPaceCoachingHapticsEnabled, offlineAction, downloadCurrentOfflineRegion, removeOfflineRegion, setActiveOfflineRegion, inspectOfflineRegion, repairOfflineRegion, importOfflineArchive, exportOfflineArchive, removeOfflineArchive, inspectOfflineTerrainArchive } = useRunQuest();
   const [styleDraft, setStyleDraft] = useState(OPENFREEMAP_STYLE_URL);
   const [regionInspections, setRegionInspections] = useState<Record<string, OfflineRegionInspection>>({});
   const [terrainInspections, setTerrainInspections] = useState<Record<string, OfflineTerrainArchiveInspection>>({});
@@ -64,6 +64,10 @@ export default function SettingsScreen() {
           <View style={styles.switchRow}><View style={styles.switchCopy}><Text style={styles.switchTitle}>Haptic feedback</Text><Text style={styles.switchBody}>Short feedback for start, pause, and new territory.</Text></View><Switch value={state.settings.hapticsEnabled} onValueChange={setHapticsEnabled} trackColor={{ false: rq.border, true: rq.teal + "AA" }} thumbColor={state.settings.hapticsEnabled ? rq.teal : rq.mist} /></View>
           <View style={styles.switchDivider} />
           <View style={styles.switchRow}><View style={styles.switchCopy}><Text style={styles.switchTitle}>Reduce motion</Text><Text style={styles.switchBody}>Use steady visual feedback in place of motion-heavy effects.</Text></View><Switch value={state.settings.reduceMotion} onValueChange={setReduceMotion} trackColor={{ false: rq.border, true: rq.teal + "AA" }} thumbColor={state.settings.reduceMotion ? rq.teal : rq.mist} /></View>
+          <View style={styles.switchDivider} />
+          <View style={styles.switchRow}><View style={styles.switchCopy}><Text style={styles.switchTitle}>Pace guidance</Text><Text style={styles.switchBody}>Private live pace zones from accepted foreground GPS samples. It is guidance, not a health assessment.</Text></View><Switch value={state.settings.paceCoachingEnabled} onValueChange={setPaceCoachingEnabled} trackColor={{ false: rq.border, true: rq.teal + "AA" }} thumbColor={state.settings.paceCoachingEnabled ? rq.teal : rq.mist} /></View>
+          <View style={styles.switchDivider} />
+          <View style={styles.switchRow}><View style={styles.switchCopy}><Text style={[styles.switchTitle, (!state.settings.paceCoachingEnabled || !state.settings.hapticsEnabled || state.settings.reduceMotion) && styles.switchDisabled]}>Pace cue haptics</Text><Text style={styles.switchBody}>A subtle, rate-limited cue when you enter a new pace zone. Requires Pace guidance and Haptic feedback; reduced motion keeps this off.</Text></View><Switch value={state.settings.paceCoachingHapticsEnabled} onValueChange={setPaceCoachingHapticsEnabled} disabled={!state.settings.paceCoachingEnabled || !state.settings.hapticsEnabled || state.settings.reduceMotion} trackColor={{ false: rq.border, true: rq.teal + "AA" }} thumbColor={state.settings.paceCoachingHapticsEnabled ? rq.teal : rq.mist} /></View>
           <View style={styles.switchDivider} />
           <View style={styles.switchRow}><View style={styles.switchCopy}><Text style={styles.switchTitle}>Terrain light</Text><Text style={styles.switchBody}>Add a gentle online hillshade to live maps. It never downloads into offline packs and turns off while an Atlas pack is active.</Text></View><Switch value={state.settings.terrainOverlayEnabled} onValueChange={setTerrainOverlayEnabled} trackColor={{ false: rq.border, true: rq.teal + "AA" }} thumbColor={state.settings.terrainOverlayEnabled ? rq.teal : rq.mist} /></View>
         </Panel>
@@ -131,6 +135,7 @@ const styles = StyleSheet.create({
   switchRow: { flexDirection: "row", gap: 12, alignItems: "center" },
   switchCopy: { flex: 1, gap: 3 },
   switchTitle: { color: rq.cloud, fontSize: 14, fontWeight: "800" },
+  switchDisabled: { color: rq.mist },
   switchBody: { color: rq.mist, fontSize: 12, lineHeight: 17, fontWeight: "500" },
   switchDivider: { height: 1, backgroundColor: rq.border },
   offlinePanel: { gap: 11, backgroundColor: rq.teal + "0F", borderColor: rq.teal + "45" },

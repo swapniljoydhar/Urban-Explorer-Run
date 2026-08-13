@@ -6,6 +6,7 @@ import { createOfflineRegion, getActiveOfflineRegion, offlineTileCoordinates } f
 import { getOfflineArchiveFormat, isManagedRunQuestArchiveUri } from "@/lib/runquest/archive-formats";
 import { getExpeditionStory, getFieldBrief, getMomentumDebrief, getNatureMoment } from "@/lib/runquest/nature";
 import { advanceExplorerMomentum, updatePersonalRecords } from "@/lib/runquest/momentum";
+import { canPlayPaceCoachingCue, DEFAULT_PACE_COACH_STATE, evaluatePaceCoaching, formatPaceCoachLabel } from "@/lib/runquest/pace-coaching";
 import { classifyPMTilesTerrain, parsePMTilesV3Header } from "@/lib/runquest/pmtiles-terrain";
 import { calculateLevel, calculateXp, encodeHexGridV1, processLocationSample } from "@/lib/runquest/engine";
 import { migrateRunQuestState } from "@/lib/runquest/migration";
@@ -35,6 +36,7 @@ function expedition(): ActiveExpedition {
     demoSequence: 0,
     notice: "test",
     fieldBrief: { title: "Test survey", objective: "Test objective", cue: "Test cue" },
+    paceCoach: { zone: "SETTLING", paceSecondsPerKm: null, message: "Test pace", lastCueAt: null, lastCuedZone: null },
   };
 }
 
@@ -151,6 +153,30 @@ describe("RunQuest compatibility-safe engine", () => {
     expect(migrated.workouts).toEqual([]);
     expect(migrated.momentum).toEqual({ lastExpeditionDay: null, currentStreak: 0, longestStreak: 0, totalFieldDays: 0 });
     expect(migrated.personalRecords).toEqual([]);
+    expect(migrated.settings.paceCoachingEnabled).toBe(false);
+    expect(migrated.settings.paceCoachingHapticsEnabled).toBe(false);
+  });
+
+  it("derives a stable private pace zone from an accepted rolling route and rate-limits repeat cues", () => {
+    const route = [
+      { latitude: 37.7749, longitude: -122.4194, timestamp: 0, accuracy: 8 },
+      { latitude: 37.7755, longitude: -122.4194, timestamp: 30_000, accuracy: 8 },
+      { latitude: 37.7761, longitude: -122.4194, timestamp: 60_000, accuracy: 8 },
+    ];
+    const first = evaluatePaceCoaching(route, DEFAULT_PACE_COACH_STATE);
+    expect(first.state.zone).toBe("STEADY");
+    expect(first.shouldCue).toBe(true);
+    expect(formatPaceCoachLabel(first.state.paceSecondsPerKm)).toMatch(/^7:\d{2} \/ km$/);
+    const repeat = evaluatePaceCoaching(route, first.state);
+    expect(repeat.shouldCue).toBe(false);
+  });
+
+  it("keeps coaching haptics strictly opt-in and reduced-motion safe", () => {
+    expect(canPlayPaceCoachingCue(true, true, true, false)).toBe(true);
+    expect(canPlayPaceCoachingCue(false, true, true, false)).toBe(false);
+    expect(canPlayPaceCoachingCue(true, false, true, false)).toBe(false);
+    expect(canPlayPaceCoachingCue(true, true, false, false)).toBe(false);
+    expect(canPlayPaceCoachingCue(true, true, true, true)).toBe(false);
   });
 
   it("recovers only valid persisted JSON so a backup snapshot can safely replace a malformed primary value", () => {

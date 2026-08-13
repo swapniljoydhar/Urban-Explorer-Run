@@ -9,6 +9,8 @@ import { getContractProgress, getDailyContract, isContractClaimed } from "@/lib/
 import { createDemoPoint, createWorkoutId, currentRuleset, processLocationSample, resolveTitle } from "@/lib/runquest/engine";
 import { advanceExplorerMomentum, updatePersonalRecords } from "@/lib/runquest/momentum";
 import { getFieldBrief } from "@/lib/runquest/nature";
+import { canPlayPaceCoachingCue, DEFAULT_PACE_COACH_STATE, evaluatePaceCoaching } from "@/lib/runquest/pace-coaching";
+import { paceCoachingFeedback } from "@/lib/runquest/feedback";
 import { DEFAULT_RUNQUEST_STATE, loadRunQuestState, saveRunQuestState } from "@/lib/runquest/persistence";
 import { safelyRemoveSubscription } from "@/lib/runquest/subscriptions";
 import { openLocation, type OpenLocationListener } from "@/lib/runquest/open-location";
@@ -43,6 +45,8 @@ type RunQuestContextValue = {
   setReduceMotion: (enabled: boolean) => void;
   setMapStyleUrl: (url: string) => void;
   setTerrainOverlayEnabled: (enabled: boolean) => void;
+  setPaceCoachingEnabled: (enabled: boolean) => void;
+  setPaceCoachingHapticsEnabled: (enabled: boolean) => void;
   offlineAction: { state: "IDLE" | "DOWNLOADING" | "ERROR"; completed: number; total: number; message: string | null };
   downloadCurrentOfflineRegion: () => Promise<void>;
   removeOfflineRegion: (id: string) => Promise<void>;
@@ -74,6 +78,7 @@ function createExpedition(mode: ExpeditionMode, currentStreak: number): ActiveEx
     demoSequence: 0,
     notice: mode === "live" ? "Live foreground tracking started." : "Demo expedition started — your progress is stored locally.",
     fieldBrief: getFieldBrief(startedAt, currentStreak),
+    paceCoach: DEFAULT_PACE_COACH_STATE,
   };
 }
 
@@ -166,8 +171,25 @@ export function RunQuestProvider({ children }: PropsWithChildren) {
     const expedition = activeRef.current;
     if (!expedition || expedition.status !== "active") return;
     const outcome = processLocationSample(expedition, stateRef.current.tiles, point);
-    activeRef.current = outcome.nextExpedition;
-    setActiveExpedition(outcome.nextExpedition);
+    const paceEvaluation = stateRef.current.settings.paceCoachingEnabled
+      ? evaluatePaceCoaching(outcome.nextExpedition.route, outcome.nextExpedition.paceCoach)
+      : null;
+    const nextExpedition = paceEvaluation
+      ? { ...outcome.nextExpedition, paceCoach: paceEvaluation.state, notice: paceEvaluation.shouldCue ? paceEvaluation.state.message : outcome.nextExpedition.notice }
+      : outcome.nextExpedition;
+    if (paceEvaluation?.shouldCue) {
+      paceCoachingFeedback(
+        canPlayPaceCoachingCue(
+          stateRef.current.settings.paceCoachingEnabled,
+          stateRef.current.settings.paceCoachingHapticsEnabled,
+          stateRef.current.settings.hapticsEnabled,
+          stateRef.current.settings.reduceMotion,
+        ),
+        false,
+      );
+    }
+    activeRef.current = nextExpedition;
+    setActiveExpedition(nextExpedition);
     if (outcome.nextTiles !== stateRef.current.tiles) {
       const nextState = { ...stateRef.current, tiles: outcome.nextTiles };
       commitState(nextState);
@@ -414,6 +436,8 @@ export function RunQuestProvider({ children }: PropsWithChildren) {
     setReduceMotion: (reduceMotion) => updateSettings({ reduceMotion }),
     setMapStyleUrl,
     setTerrainOverlayEnabled: (terrainOverlayEnabled) => updateSettings({ terrainOverlayEnabled }),
+    setPaceCoachingEnabled: (paceCoachingEnabled) => updateSettings(paceCoachingEnabled ? { paceCoachingEnabled } : { paceCoachingEnabled: false, paceCoachingHapticsEnabled: false }),
+    setPaceCoachingHapticsEnabled: (paceCoachingHapticsEnabled) => updateSettings({ paceCoachingHapticsEnabled }),
     offlineAction,
     downloadCurrentOfflineRegion,
     removeOfflineRegion: removeOfflineMapRegion,

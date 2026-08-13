@@ -6,6 +6,7 @@ export type CapabilityState = "AVAILABLE" | "LIMITED" | "UNAVAILABLE" | "BLOCKED
 export type TrackingMode = "balanced" | "precision" | "battery-saver";
 export type ExpeditionMode = "live" | "demo";
 export type ExpeditionStatus = "active" | "paused";
+export type PaceZone = "SETTLING" | "EASY" | "STEADY" | "BRISK" | "SWIFT";
 
 export type RunQuestCapability = {
   state: CapabilityState;
@@ -77,6 +78,14 @@ export type FieldBrief = {
   cue: string;
 };
 
+export type PaceCoachState = {
+  zone: PaceZone;
+  paceSecondsPerKm: number | null;
+  message: string;
+  lastCueAt: number | null;
+  lastCuedZone: PaceZone | null;
+};
+
 export type PlayerProfile = {
   totalXp: number;
   title: string;
@@ -108,6 +117,10 @@ export type RunQuestSettings = {
   mapStyleUrl: string;
   /** A visual-only online hillshade; never downloaded into Atlas packs. */
   terrainOverlayEnabled: boolean;
+  /** Private, foreground-only pace guidance derived from accepted route samples. */
+  paceCoachingEnabled: boolean;
+  /** Requires both pace coaching and the existing global haptics preference. */
+  paceCoachingHapticsEnabled: boolean;
 };
 
 export type OfflineMapRegion = {
@@ -158,6 +171,7 @@ export type ActiveExpedition = {
   demoSequence: number;
   notice: string;
   fieldBrief: FieldBrief;
+  paceCoach: PaceCoachState;
 };
 
 export type FieldContractKind = "FRONTIER" | "ENDURANCE" | "EXPEDITION";

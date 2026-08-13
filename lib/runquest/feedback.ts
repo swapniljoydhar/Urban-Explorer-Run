@@ -16,3 +16,8 @@ export function mediumFeedback(enabled: boolean): void {
 export function successFeedback(enabled: boolean): void {
   if (canUseHaptics(enabled)) void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
 }
+
+/** Pace cues are intentionally subtle and are disabled when reduced motion is requested. */
+export function paceCoachingFeedback(enabled: boolean, reduceMotion: boolean): void {
+  if (canUseHaptics(enabled) && !reduceMotion) void Haptics.selectionAsync();
+}

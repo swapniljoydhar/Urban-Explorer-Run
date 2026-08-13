@@ -109,3 +109,10 @@ Competitor-inspired scope confirmed: adapt proven mechanics from location games 
 - [x] Re-run dependency audit, TypeScript, regression, lint, Android/web export, and targeted mobile-flow checks before checkpoint
 
 Audit scope confirmed: preserve local-first data ownership, Android 7 compatibility, Google-free maps, single-player boundaries, stable tile identities, and existing saved-state migration behavior.
+
+- [x] Add a private pace-zone coaching model with stable, bounded live-pace evaluation and migration-safe defaults
+- [x] Add an explicit Settings opt-in and reduced-motion-aware, rate-limited haptic feedback guard
+- [x] Surface compact active-expedition pace guidance with no background tracking, network calls, or new account requirement
+- [x] Add deterministic pace-zone, cue-throttling, migration, and haptic-preference tests; validate Android/web exports and mobile views
+
+Pace coaching scope confirmed: all guidance stays private and on-device, never performs health diagnosis, and keeps safety, user comfort, and optional feedback ahead of rewards.

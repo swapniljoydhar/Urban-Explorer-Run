@@ -15,6 +15,7 @@ import { useRunQuest } from "@/lib/runquest/context";
 import { lightFeedback, mediumFeedback, successFeedback } from "@/lib/runquest/feedback";
 import { getActiveOfflineRegion } from "@/lib/runquest/offline-regions";
 import { getNatureMoment } from "@/lib/runquest/nature";
+import { formatPaceCoachLabel } from "@/lib/runquest/pace-coaching";
 
 function ActiveScreenLock() {
   useKeepAwake("runquest-expedition", { suppressDeactivateWarnings: true });
@@ -88,6 +89,12 @@ export default function ExpeditionScreen() {
 
         <NatureSignal moment={natureMoment} compact />
 
+        <Panel style={[styles.pacePanel, state.settings.paceCoachingEnabled && styles.pacePanelActive]}>
+          <View style={styles.paceTop}><View><Text style={styles.paceEyebrow}>PRIVATE PACE GUIDE</Text><Text style={styles.paceTitle}>{state.settings.paceCoachingEnabled ? active.paceCoach.zone : "Guidance off"}</Text></View><StatePill state={state.settings.paceCoachingEnabled ? "AVAILABLE" : "LIMITED"} label={state.settings.paceCoachingEnabled ? formatPaceCoachLabel(active.paceCoach.paceSecondsPerKm) : "OPT-IN"} /></View>
+          <Text style={styles.paceCopy}>{state.settings.paceCoachingEnabled ? active.paceCoach.message : "Enable Pace guidance in Settings to see a private, rolling pace zone from your accepted route samples."}</Text>
+          {state.settings.paceCoachingEnabled && state.settings.paceCoachingHapticsEnabled && state.settings.hapticsEnabled && !state.settings.reduceMotion ? <Text style={styles.paceCue}>Subtle haptic cue enabled · transitions are rate-limited.</Text> : null}
+        </Panel>
+
         <Panel style={styles.contractPanel}>
           <View style={styles.contractTop}><View><Text style={styles.contractEyebrow}>ACTIVE FIELD CONTRACT</Text><Text style={styles.contractTitle}>{contract.title}</Text></View><StatePill state={contractClaimed ? "AVAILABLE" : "LIMITED"} label={contractClaimed ? "CLAIMED" : `${contract.rewardXp} XP`} /></View>
           <Text style={styles.contractCopy}>{contract.instruction}</Text>
@@ -124,6 +131,13 @@ const styles = StyleSheet.create({
   liveDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: rq.teal },
   notice: { flex: 1, color: rq.mist, fontSize: 12, lineHeight: 17, fontWeight: "600" },
   contractPanel: { gap: 8 },
+  pacePanel: { gap: 7, backgroundColor: rq.cyan + "0C", borderColor: rq.border },
+  pacePanelActive: { backgroundColor: rq.cyan + "12", borderColor: rq.cyan + "52" },
+  paceTop: { flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between", gap: 10 },
+  paceEyebrow: { color: rq.cyan, fontSize: 10, letterSpacing: 1, fontWeight: "900" },
+  paceTitle: { color: rq.cloud, fontSize: 15, fontWeight: "900", marginTop: 3 },
+  paceCopy: { color: rq.mist, fontSize: 12, lineHeight: 17, fontWeight: "600" },
+  paceCue: { color: rq.teal, fontSize: 10, lineHeight: 15, fontWeight: "800" },
   contractTop: { flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between", gap: 10 },
   contractEyebrow: { color: rq.cyan, fontSize: 10, letterSpacing: 1, fontWeight: "900" },
   contractTitle: { color: rq.cloud, fontSize: 15, fontWeight: "900", marginTop: 3 },
