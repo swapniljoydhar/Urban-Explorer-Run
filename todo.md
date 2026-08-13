@@ -96,3 +96,10 @@ Single-player rule confirmed: RunQuest must not add leaderboards, matchmaking, s
 - [x] Add deterministic valid, invalid, truncated, unsupported, and non-terrain PMTiles header tests; validate Android/web builds before checkpoint
 
 Approval received: PMTiles terrain-header integrity milestone only. Do not begin direct archive rendering, public-tile prefetch, cloud sync, or multiplayer work.
+
+- [x] Add private Explorer Momentum with daily expedition streaks, longest streak, and personal best records while preserving every existing saved state
+- [x] Add original local Field Brief and debrief storytelling that uses RunQuest’s natural-world vocabulary rather than copied competitor content
+- [x] Surface streak, personal-record, and field-brief feedback on Home, Progress, and the post-expedition report with reduced-motion-safe visual treatment
+- [x] Add deterministic migration, streak, record, and narrative tests; validate Android/web exports and mobile views before checkpoint
+
+Competitor-inspired scope confirmed: adapt proven mechanics from location games and fitness trackers, but keep RunQuest single-player, local-first, Google-free, non-social, and Android 7 compatible.

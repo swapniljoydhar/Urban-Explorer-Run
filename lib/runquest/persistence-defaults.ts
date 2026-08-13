@@ -9,4 +9,6 @@ export const DEFAULT_RUNQUEST_STATE: RunQuestState = {
   offlineRegions: [],
   activeOfflineRegionId: null,
   offlineArchives: [],
+  momentum: { lastExpeditionDay: null, currentStreak: 0, longestStreak: 0, totalFieldDays: 0 },
+  personalRecords: [],
 };

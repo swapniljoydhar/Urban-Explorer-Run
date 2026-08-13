@@ -4,14 +4,15 @@ import { getDailyContract } from "@/lib/runquest/contracts";
 import { evaluateNewAchievements } from "@/lib/runquest/achievements";
 import { createOfflineRegion, getActiveOfflineRegion, offlineTileCoordinates } from "@/lib/runquest/offline-regions";
 import { getOfflineArchiveFormat } from "@/lib/runquest/archive-formats";
-import { getExpeditionStory, getNatureMoment } from "@/lib/runquest/nature";
+import { getExpeditionStory, getFieldBrief, getMomentumDebrief, getNatureMoment } from "@/lib/runquest/nature";
+import { advanceExplorerMomentum, updatePersonalRecords } from "@/lib/runquest/momentum";
 import { classifyPMTilesTerrain, parsePMTilesV3Header } from "@/lib/runquest/pmtiles-terrain";
 import { calculateLevel, calculateXp, encodeHexGridV1, processLocationSample } from "@/lib/runquest/engine";
 import { migrateRunQuestState } from "@/lib/runquest/migration";
 import { normalizeMapStyleUrl, OPENFREEMAP_STYLE_URL } from "@/lib/runquest/map-providers";
 import { canFollowCamera, createAccuracyFeature, getMarkerAccuracyBand, getAccuracyRadiusMeters, shouldInterruptFollow } from "@/lib/runquest/map-marker";
 import { safelyRemoveSubscription } from "@/lib/runquest/subscriptions";
-import type { ActiveExpedition, RoutePoint } from "@/lib/runquest/types";
+import type { ActiveExpedition, RoutePoint, WorkoutRecord } from "@/lib/runquest/types";
 
 const firstPoint: RoutePoint = { latitude: 37.7749, longitude: -122.4194, timestamp: 1_000, accuracy: 8 };
 
@@ -30,6 +31,24 @@ function expedition(): ActiveExpedition {
     lastPoint: null,
     demoSequence: 0,
     notice: "test",
+    fieldBrief: { title: "Test survey", objective: "Test objective", cue: "Test cue" },
+  };
+}
+
+function workoutRecord(overrides: Partial<WorkoutRecord> = {}): WorkoutRecord {
+  return {
+    id: "workout-1",
+    startedAt: 0,
+    endedAt: 720_000,
+    mode: "demo",
+    distanceMeters: 2_000,
+    steps: 2_000,
+    xpEarned: 240,
+    newTileCount: 2,
+    contractRewardXp: 0,
+    route: [],
+    rulesetVersion: "rq-progression-v1",
+    ...overrides,
   };
 }
 
@@ -127,6 +146,8 @@ describe("RunQuest compatibility-safe engine", () => {
     expect(migrated.activeOfflineRegionId).toBeNull();
     expect(migrated.offlineArchives).toEqual([]);
     expect(migrated.workouts).toEqual([]);
+    expect(migrated.momentum).toEqual({ lastExpeditionDay: null, currentStreak: 0, longestStreak: 0, totalFieldDays: 0 });
+    expect(migrated.personalRecords).toEqual([]);
   });
 
   it("defaults legacy settings to the OpenFreeMap style without changing saved game data", () => {
@@ -224,6 +245,33 @@ describe("RunQuest compatibility-safe engine", () => {
     expect(getNatureMoment(night).phase).toBe("NIGHT");
     expect(getExpeditionStory(dawn, 2)).toContain("new ground");
     expect(getExpeditionStory(night, 0)).toContain("familiar path");
+    expect(getFieldBrief(dawn, 0).title).toBe("First light survey");
+    expect(getFieldBrief(night, 6).cue).toContain("Safety");
+    expect(getMomentumDebrief(0, 3, 0)).toContain("3 days");
+  });
+
+  it("advances local field streaks once per calendar day and resets safely after a gap", () => {
+    const firstDay = new Date(2026, 7, 10, 9, 0, 0).getTime();
+    const secondDay = new Date(2026, 7, 11, 9, 0, 0).getTime();
+    const gapDay = new Date(2026, 7, 13, 9, 0, 0).getTime();
+    const first = advanceExplorerMomentum({ lastExpeditionDay: null, currentStreak: 0, longestStreak: 0, totalFieldDays: 0 }, firstDay);
+    expect(first).toMatchObject({ currentStreak: 1, longestStreak: 1, totalFieldDays: 1 });
+    expect(advanceExplorerMomentum(first, firstDay)).toEqual(first);
+    const second = advanceExplorerMomentum(first, secondDay);
+    expect(second).toMatchObject({ currentStreak: 2, longestStreak: 2, totalFieldDays: 2 });
+    expect(advanceExplorerMomentum(second, gapDay)).toMatchObject({ currentStreak: 1, longestStreak: 2, totalFieldDays: 3 });
+  });
+
+  it("keeps personal records private, bounded, and limited to genuine improvements", () => {
+    const first = updatePersonalRecords([], workoutRecord());
+    expect(first.newRecordKinds).toEqual(["LONGEST_DISTANCE", "MOST_NEW_CELLS", "BEST_PACE"]);
+    const longerButSlower = updatePersonalRecords(first.records, workoutRecord({ id: "workout-2", endedAt: 900_000, distanceMeters: 2_100, newTileCount: 1 }));
+    expect(longerButSlower.newRecordKinds).toEqual(["LONGEST_DISTANCE"]);
+    const fasterFrontier = updatePersonalRecords(longerButSlower.records, workoutRecord({ id: "workout-3", endedAt: 250_000, distanceMeters: 1_000, newTileCount: 5 }));
+    expect(fasterFrontier.newRecordKinds).toEqual(["MOST_NEW_CELLS", "BEST_PACE"]);
+    expect(fasterFrontier.records).toHaveLength(3);
+    expect(fasterFrontier.records.find((record) => record.kind === "LONGEST_DISTANCE")?.value).toBe(2_100);
+    expect(fasterFrontier.records.find((record) => record.kind === "BEST_PACE")?.value).toBe(250);
   });
 
   it("migrates the terrain overlay preference without changing legacy map settings", () => {

@@ -1,4 +1,4 @@
-import { StyleSheet, Text, View } from "react-native";
+import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { useRouter } from "expo-router";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 
@@ -10,7 +10,7 @@ import { calculateLevel } from "@/lib/runquest/engine";
 import { getAchievement } from "@/lib/runquest/achievements";
 import { formatContractProgress } from "@/lib/runquest/contracts";
 import { useRunQuest } from "@/lib/runquest/context";
-import { getExpeditionStory, getNatureMoment } from "@/lib/runquest/nature";
+import { getExpeditionStory, getMomentumDebrief, getNatureMoment } from "@/lib/runquest/nature";
 
 export default function ReportScreen() {
   const router = useRouter();
@@ -20,7 +20,7 @@ export default function ReportScreen() {
     return <ScreenContainer className="px-5 justify-center" safeAreaClassName="bg-background"><Panel style={styles.empty}><Text style={styles.emptyTitle}>No expedition report is ready.</Text><PrimaryButton label="Return to Quest" icon="arrow-back" onPress={() => router.replace("/(tabs)")} /></Panel></ScreenContainer>;
   }
 
-  const { workout, contract, contractProgress, contractCompleted, totalXpBefore, totalXpAfter, unlockedAchievementIds } = latestReport;
+  const { workout, contract, contractProgress, contractCompleted, totalXpBefore, totalXpAfter, unlockedAchievementIds, momentum, newPersonalRecordKinds, fieldBrief } = latestReport;
   const startLevel = calculateLevel(totalXpBefore);
   const endLevel = calculateLevel(totalXpAfter);
   const finish = () => { dismissReport(); router.replace("/(tabs)"); };
@@ -28,7 +28,7 @@ export default function ReportScreen() {
 
   return (
     <ScreenContainer className="px-5" safeAreaClassName="bg-background">
-      <View style={styles.root}>
+      <ScrollView contentContainerStyle={styles.root} showsVerticalScrollIndicator={false}>
         <View style={styles.heroIcon}><MaterialIcons name="terrain" color={rq.midnight} size={30} /></View>
         <Text style={styles.eyebrow}>FIELD NOTE RECORDED</Text>
         <Text style={styles.title}>{getExpeditionStory(workout.startedAt, workout.newTileCount)}</Text>
@@ -40,6 +40,17 @@ export default function ReportScreen() {
           <View style={styles.metricRow}><Metric label="Distance" value={formatDistance(workout.distanceMeters)} accent={rq.teal} /><Metric label="New cells" value={String(workout.newTileCount)} accent={rq.gold} /><Metric label="XP earned" value={`+${workout.xpEarned + workout.contractRewardXp}`} accent={rq.cyan} /></View>
           {endLevel > startLevel ? <View style={styles.levelUp}><MaterialIcons name="north-east" color={rq.gold} size={18} /><Text style={styles.levelUpText}>Level up: {startLevel} → {endLevel}</Text></View> : null}
         </Panel>
+
+        <Panel style={styles.momentumPanel}>
+          <View style={styles.momentumHeader}><View><Text style={styles.momentumEyebrow}>FIELD BRIEF / {fieldBrief.title.toUpperCase()}</Text><Text style={styles.momentumTitle}>{fieldBrief.objective}</Text></View><MaterialIcons name="explore" color={rq.teal} size={23} /></View>
+          <Text style={styles.momentumBody}>{getMomentumDebrief(workout.newTileCount, momentum.currentStreak, newPersonalRecordKinds.length)}</Text>
+          <View style={styles.momentumMetrics}><Metric label="Field streak" value={`${momentum.currentStreak} day${momentum.currentStreak === 1 ? "" : "s"}`} accent={rq.teal} /><Metric label="Best rhythm" value={`${momentum.longestStreak} day${momentum.longestStreak === 1 ? "" : "s"}`} accent={rq.gold} /></View>
+        </Panel>
+
+        {newPersonalRecordKinds.length ? <Panel style={styles.recordPanel}>
+          <Text style={styles.recordEyebrow}>NEW PERSONAL RECORD{newPersonalRecordKinds.length > 1 ? "S" : ""}</Text>
+          <Text style={styles.recordText}>{newPersonalRecordKinds.map((kind) => kind === "LONGEST_DISTANCE" ? "Longest expedition" : kind === "MOST_NEW_CELLS" ? "Most new cells" : "Best steady pace").join(" · ")}</Text>
+        </Panel> : null}
 
         <Panel style={[styles.contract, contractCompleted && styles.contractCompleted]}>
           <View style={styles.contractTop}><View><Text style={styles.contractEyebrow}>FIELD CONTRACT</Text><Text style={styles.contractTitle}>{contract.title}</Text></View><StatePill state={contractCompleted ? "AVAILABLE" : "LIMITED"} label={contractCompleted ? "CLAIMED" : "IN PROGRESS"} /></View>
@@ -58,13 +69,13 @@ export default function ReportScreen() {
 
         <Panel style={styles.nextPanel}><Text style={styles.nextLabel}>NEXT FIELD INSTRUCTION</Text><Text style={styles.nextText}>{contractCompleted ? "Tomorrow’s contract will rotate at midnight. Revisit a mapped cell in a future outing to advance Cartography Mastery." : "Take another expedition when you are ready—the contract remains active for the rest of today."}</Text></Panel>
         <PrimaryButton label="Return to Quest" icon="arrow-forward" onPress={finish} />
-      </View>
+      </ScrollView>
     </ScreenContainer>
   );
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, paddingTop: 34, paddingBottom: 18, gap: 16 },
+  root: { paddingTop: 34, paddingBottom: 24, gap: 16 },
   heroIcon: { width: 64, height: 64, borderRadius: 24, alignItems: "center", justifyContent: "center", backgroundColor: rq.teal, alignSelf: "center" },
   eyebrow: { color: rq.teal, textAlign: "center", fontSize: 10, letterSpacing: 1.3, fontWeight: "900" },
   title: { color: rq.cloud, fontSize: 29, lineHeight: 35, letterSpacing: -0.8, fontWeight: "900", textAlign: "center" },
@@ -73,6 +84,15 @@ const styles = StyleSheet.create({
   metricRow: { flexDirection: "row", gap: 10 },
   levelUp: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, borderTopWidth: 1, borderTopColor: rq.border, paddingTop: 13 },
   levelUpText: { color: rq.gold, fontSize: 14, fontWeight: "900" },
+  momentumPanel: { gap: 10, borderColor: rq.teal + "66", backgroundColor: rq.teal + "0D" },
+  momentumHeader: { flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between", gap: 12 },
+  momentumEyebrow: { color: rq.teal, fontSize: 10, letterSpacing: 0.9, fontWeight: "900" },
+  momentumTitle: { color: rq.cloud, fontSize: 15, lineHeight: 21, fontWeight: "900", marginTop: 3 },
+  momentumBody: { color: rq.mist, fontSize: 12, lineHeight: 18, fontWeight: "600" },
+  momentumMetrics: { flexDirection: "row", gap: 12, borderTopWidth: 1, borderTopColor: rq.border, paddingTop: 10 },
+  recordPanel: { gap: 4, borderColor: rq.gold + "88", backgroundColor: rq.gold + "12" },
+  recordEyebrow: { color: rq.gold, fontSize: 10, letterSpacing: 1, fontWeight: "900" },
+  recordText: { color: rq.cloud, fontSize: 14, lineHeight: 20, fontWeight: "900" },
   contract: { gap: 10 },
   contractCompleted: { borderColor: rq.teal + "99", backgroundColor: rq.teal + "16" },
   contractTop: { flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between", gap: 12 },

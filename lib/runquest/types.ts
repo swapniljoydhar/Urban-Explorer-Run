@@ -54,6 +54,29 @@ export type WorkoutRecord = {
   rulesetVersion: typeof PROGRESSION_RULESET_VERSION;
 };
 
+export type ExplorerMomentum = {
+  /** Local calendar day of the most recent completed expedition, never uploaded. */
+  lastExpeditionDay: string | null;
+  currentStreak: number;
+  longestStreak: number;
+  totalFieldDays: number;
+};
+
+export type PersonalRecordKind = "LONGEST_DISTANCE" | "MOST_NEW_CELLS" | "BEST_PACE";
+
+export type PersonalRecord = {
+  kind: PersonalRecordKind;
+  value: number;
+  achievedAt: number;
+  workoutId: string;
+};
+
+export type FieldBrief = {
+  title: string;
+  objective: string;
+  cue: string;
+};
+
 export type PlayerProfile = {
   totalXp: number;
   title: string;
@@ -116,6 +139,8 @@ export type RunQuestState = {
   offlineRegions: OfflineMapRegion[];
   activeOfflineRegionId: string | null;
   offlineArchives: OfflineArchiveRecord[];
+  momentum: ExplorerMomentum;
+  personalRecords: PersonalRecord[];
 };
 
 export type ActiveExpedition = {
@@ -132,6 +157,7 @@ export type ActiveExpedition = {
   lastPoint: RoutePoint | null;
   demoSequence: number;
   notice: string;
+  fieldBrief: FieldBrief;
 };
 
 export type FieldContractKind = "FRONTIER" | "ENDURANCE" | "EXPEDITION";
@@ -154,6 +180,9 @@ export type ExpeditionReport = {
   totalXpBefore: number;
   totalXpAfter: number;
   unlockedAchievementIds: AchievementId[];
+  momentum: ExplorerMomentum;
+  newPersonalRecordKinds: PersonalRecordKind[];
+  fieldBrief: FieldBrief;
 };
 
 export type DiscoveryOutcome = {

@@ -72,6 +72,18 @@ const persistedStateSchema = z.object({
     importedAt: finiteNumber.nonnegative(),
     source: z.string().min(1).max(64),
   })).max(8).optional(),
+  momentum: z.object({
+    lastExpeditionDay: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().optional(),
+    currentStreak: z.number().int().nonnegative().max(10_000).optional(),
+    longestStreak: z.number().int().nonnegative().max(10_000).optional(),
+    totalFieldDays: z.number().int().nonnegative().max(100_000).optional(),
+  }).optional(),
+  personalRecords: z.array(z.object({
+    kind: z.enum(["LONGEST_DISTANCE", "MOST_NEW_CELLS", "BEST_PACE"]),
+    value: finiteNumber.nonnegative().max(10_000_000),
+    achievedAt: finiteNumber.nonnegative(),
+    workoutId: z.string().min(1).max(160),
+  })).max(3).optional(),
 }).passthrough();
 
 export function migrateRunQuestState(value: unknown): RunQuestState {
@@ -88,5 +100,7 @@ export function migrateRunQuestState(value: unknown): RunQuestState {
     offlineRegions: candidate.offlineRegions ?? [],
     activeOfflineRegionId: candidate.activeOfflineRegionId ?? null,
     offlineArchives: candidate.offlineArchives ?? [],
+    momentum: { ...DEFAULT_RUNQUEST_STATE.momentum, ...candidate.momentum },
+    personalRecords: candidate.personalRecords ?? [],
   };
 }

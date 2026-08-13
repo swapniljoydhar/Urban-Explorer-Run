@@ -8,6 +8,7 @@ import { calculateLevel, levelProgress } from "@/lib/runquest/engine";
 import { useRunQuest } from "@/lib/runquest/context";
 import { formatContractProgress, getContractProgress, getDailyContract, isContractClaimed } from "@/lib/runquest/contracts";
 import { ACHIEVEMENTS } from "@/lib/runquest/achievements";
+import { formatPersonalRecord } from "@/lib/runquest/format";
 
 export default function ProgressScreen() {
   const { hydrated, state } = useRunQuest();
@@ -18,6 +19,7 @@ export default function ProgressScreen() {
   const contractProgress = getContractProgress(state, contract);
   const contractClaimed = isContractClaimed(state, contract);
   const unlocked = new Set(state.profile.achievements.map((achievement) => achievement.id));
+  const recordByKind = new Map(state.personalRecords.map((record) => [record.kind, record]));
   return (
     <ScreenContainer className="px-5" safeAreaClassName="bg-background">
       <ScrollView contentContainerStyle={styles.root} showsVerticalScrollIndicator={false}>
@@ -35,6 +37,13 @@ export default function ProgressScreen() {
           <View style={styles.ruleRow}><Text style={styles.ruleAmount}>120 XP</Text><Text style={styles.ruleText}>for every kilometer recorded in an expedition</Text></View>
           <View style={styles.ruleRow}><Text style={styles.ruleAmount}>50 XP</Text><Text style={styles.ruleText}>for a newly discovered atlas cell</Text></View>
           <Text style={styles.ruleFoot}>Rules are versioned so future balance updates cannot silently rewrite saved achievements.</Text>
+        </Panel>
+        <Panel style={styles.recordsPanel}>
+          <View style={styles.recordsHeader}><View><Text style={styles.recordsEyebrow}>PRIVATE FIELD RECORDS</Text><Text style={styles.recordsHeading}>Compete only with your own ledger.</Text></View><MaterialIcons name="workspace-premium" color={rq.teal} size={23} /></View>
+          <View style={styles.recordRow}><Text style={styles.recordLabel}>Longest expedition</Text><Text style={styles.recordValue}>{formatPersonalRecord(recordByKind.get("LONGEST_DISTANCE"))}</Text></View>
+          <View style={styles.recordRow}><Text style={styles.recordLabel}>Most new cells</Text><Text style={styles.recordValue}>{formatPersonalRecord(recordByKind.get("MOST_NEW_CELLS"))}</Text></View>
+          <View style={styles.recordRow}><Text style={styles.recordLabel}>Best steady pace</Text><Text style={styles.recordValue}>{formatPersonalRecord(recordByKind.get("BEST_PACE"))}</Text></View>
+          <Text style={styles.recordsFoot}>Records update locally after an expedition. No leaderboard, account, or public comparison is involved.</Text>
         </Panel>
         <Panel style={styles.contractPanel}>
           <Text style={styles.contractEyebrow}>TODAY’S FIELD CONTRACT</Text>
@@ -76,6 +85,14 @@ const styles = StyleSheet.create({
   ruleAmount: { color: rq.teal, minWidth: 58, fontSize: 13, fontWeight: "900" },
   ruleText: { color: rq.mist, flex: 1, fontSize: 13, lineHeight: 18, fontWeight: "600" },
   ruleFoot: { color: rq.mist, fontSize: 12, lineHeight: 18, fontWeight: "500", borderTopColor: rq.border, borderTopWidth: 1, paddingTop: 13 },
+  recordsPanel: { gap: 10, borderColor: rq.teal + "55", backgroundColor: rq.teal + "0B" },
+  recordsHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", gap: 12, paddingBottom: 2 },
+  recordsEyebrow: { color: rq.teal, fontSize: 10, letterSpacing: 1, fontWeight: "900" },
+  recordsHeading: { color: rq.cloud, fontSize: 15, fontWeight: "900", marginTop: 3 },
+  recordRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", borderTopWidth: 1, borderTopColor: rq.border, paddingTop: 9 },
+  recordLabel: { color: rq.mist, fontSize: 12, fontWeight: "700" },
+  recordValue: { color: rq.cloud, fontSize: 13, fontWeight: "900" },
+  recordsFoot: { color: rq.mist, fontSize: 11, lineHeight: 16, fontWeight: "600", paddingTop: 2 },
   contractPanel: { gap: 8, backgroundColor: rq.cyan + "10", borderColor: rq.cyan + "45" },
   contractEyebrow: { color: rq.cyan, fontSize: 10, letterSpacing: 1, fontWeight: "900" },
   contractTitle: { color: rq.cloud, fontSize: 17, fontWeight: "900" },

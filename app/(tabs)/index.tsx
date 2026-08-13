@@ -9,7 +9,7 @@ import { LoadingState, Metric, Panel, PrimaryButton, rq, StatePill } from "@/com
 import { ScreenContainer } from "@/components/screen-container";
 import { levelProgress } from "@/lib/runquest/engine";
 import { formatContractProgress, getContractProgress, getDailyContract, isContractClaimed } from "@/lib/runquest/contracts";
-import { formatDistance } from "@/lib/runquest/format";
+import { formatDistance, formatPersonalRecord } from "@/lib/runquest/format";
 import { useRunQuest } from "@/lib/runquest/context";
 import { lightFeedback } from "@/lib/runquest/feedback";
 import { getNatureMoment } from "@/lib/runquest/nature";
@@ -24,6 +24,8 @@ export default function HomeScreen() {
   const natureMoment = getNatureMoment();
   const contractProgress = getContractProgress(state, contract);
   const contractClaimed = isContractClaimed(state, contract);
+  const longestDistance = state.personalRecords.find((record) => record.kind === "LONGEST_DISTANCE");
+  const currentStreak = state.momentum.currentStreak;
 
   const handleStart = useCallback(async () => {
     lightFeedback(state.settings.hapticsEnabled);
@@ -59,6 +61,16 @@ export default function HomeScreen() {
         <NatureSignal moment={natureMoment} />
 
         <AtlasGrid discovered={Object.keys(state.tiles).length} />
+
+        <Panel style={styles.momentumPanel}>
+          <View style={styles.momentumHeader}><View><Text style={styles.momentumEyebrow}>EXPLORER MOMENTUM</Text><Text style={styles.momentumTitle}>{currentStreak ? `${currentStreak}-day field rhythm` : "Your next field day starts here"}</Text></View><StatePill state={currentStreak >= 2 ? "AVAILABLE" : "LIMITED"} label={currentStreak >= 2 ? "IN FLOW" : "READY"} /></View>
+          <Text style={styles.momentumBody}>{currentStreak >= 2 ? "One comfortable expedition on a new local day keeps your private field rhythm moving." : "Finish an expedition today to mark the first day in your private field rhythm."}</Text>
+          <View style={styles.metricRow}>
+            <Metric label="Current streak" value={`${currentStreak} day${currentStreak === 1 ? "" : "s"}`} accent={rq.teal} />
+            <Metric label="Longest" value={`${state.momentum.longestStreak} day${state.momentum.longestStreak === 1 ? "" : "s"}`} accent={rq.gold} />
+            <Metric label="Best distance" value={formatPersonalRecord(longestDistance)} accent={rq.cyan} />
+          </View>
+        </Panel>
 
         <Panel style={styles.objectivePanel}>
           <View style={styles.objectiveRow}>
@@ -111,6 +123,11 @@ const styles = StyleSheet.create({
   sectionLabel: { color: rq.mist, fontSize: 10, fontWeight: "800", letterSpacing: 1.05 },
   objectiveTitle: { color: rq.cloud, fontSize: 16, lineHeight: 21, fontWeight: "800" },
   objectiveBody: { color: rq.mist, fontSize: 13, lineHeight: 19, fontWeight: "500" },
+  momentumPanel: { gap: 11, backgroundColor: rq.teal + "0C", borderColor: rq.teal + "58" },
+  momentumHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", gap: 12 },
+  momentumEyebrow: { color: rq.teal, fontSize: 10, letterSpacing: 1, fontWeight: "900" },
+  momentumTitle: { color: rq.cloud, fontSize: 16, lineHeight: 21, fontWeight: "900", marginTop: 3 },
+  momentumBody: { color: rq.mist, fontSize: 12, lineHeight: 18, fontWeight: "600" },
   statsPanel: { gap: 15 },
   metricRow: { flexDirection: "row", gap: 10 },
   ledgerRow: { flexDirection: "row", alignItems: "center", gap: 7, borderTopWidth: 1, borderTopColor: rq.border, paddingTop: 12 },

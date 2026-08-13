@@ -73,7 +73,7 @@ export default function ExpeditionScreen() {
 
         <View style={styles.mapWrap}>
           <GeographicMap route={active.route} tiles={Object.values(state.tiles)} currentPoint={active.lastPoint} offlineRegion={getActiveOfflineRegion(state)} mapStyleUrl={state.settings.mapStyleUrl} reduceMotion={state.settings.reduceMotion} terrainOverlayEnabled={state.settings.terrainOverlayEnabled} />
-          <View style={styles.mapOverlay}><Text style={[styles.mapEyebrow, { color: natureMoment.accent }]}>{natureMoment.shortLabel} / EXPEDITION MAP</Text><Text style={styles.mapTitle}>{natureMoment.title} is guiding this local route.</Text></View>
+          <View style={styles.mapOverlay}><Text style={[styles.mapEyebrow, { color: natureMoment.accent }]}>{active.fieldBrief.title.toUpperCase()} / {natureMoment.shortLabel}</Text><Text style={styles.mapTitle}>{active.fieldBrief.objective}</Text><Text style={styles.mapCue}>{active.fieldBrief.cue}</Text></View>
         </View>
 
         <Panel style={styles.metricsPanel}>
@@ -116,6 +116,7 @@ const styles = StyleSheet.create({
   mapOverlay: { position: "absolute", left: 16, right: 16, top: 16, borderRadius: 16, padding: 12, backgroundColor: rq.midnight + "DD" },
   mapEyebrow: { color: rq.teal, fontSize: 10, letterSpacing: 1, fontWeight: "800" },
   mapTitle: { color: rq.cloud, fontSize: 16, fontWeight: "800", marginTop: 3 },
+  mapCue: { color: rq.mist, fontSize: 11, lineHeight: 16, fontWeight: "600", marginTop: 4 },
   metricsPanel: { gap: 13 },
   metricRow: { flexDirection: "row", gap: 12 },
   divider: { height: 1, backgroundColor: rq.border },

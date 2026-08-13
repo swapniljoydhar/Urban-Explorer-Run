@@ -7,6 +7,8 @@ import { inspectCapabilities } from "@/lib/runquest/capabilities";
 import { evaluateNewAchievements } from "@/lib/runquest/achievements";
 import { getContractProgress, getDailyContract, isContractClaimed } from "@/lib/runquest/contracts";
 import { createDemoPoint, createWorkoutId, currentRuleset, processLocationSample, resolveTitle } from "@/lib/runquest/engine";
+import { advanceExplorerMomentum, updatePersonalRecords } from "@/lib/runquest/momentum";
+import { getFieldBrief } from "@/lib/runquest/nature";
 import { DEFAULT_RUNQUEST_STATE, loadRunQuestState, saveRunQuestState } from "@/lib/runquest/persistence";
 import { safelyRemoveSubscription } from "@/lib/runquest/subscriptions";
 import { openLocation, type OpenLocationListener } from "@/lib/runquest/open-location";
@@ -55,7 +57,7 @@ type RunQuestContextValue = {
 
 const RunQuestContext = createContext<RunQuestContextValue | null>(null);
 
-function createExpedition(mode: ExpeditionMode): ActiveExpedition {
+function createExpedition(mode: ExpeditionMode, currentStreak: number): ActiveExpedition {
   const startedAt = Date.now();
   return {
     id: createWorkoutId(startedAt),
@@ -71,6 +73,7 @@ function createExpedition(mode: ExpeditionMode): ActiveExpedition {
     lastPoint: null,
     demoSequence: 0,
     notice: mode === "live" ? "Live foreground tracking started." : "Demo expedition started — your progress is stored locally.",
+    fieldBrief: getFieldBrief(startedAt, currentStreak),
   };
 }
 
@@ -186,7 +189,7 @@ export function RunQuestProvider({ children }: PropsWithChildren) {
       mode = "demo";
     }
 
-    const nextExpedition = createExpedition(mode);
+    const nextExpedition = createExpedition(mode, stateRef.current.momentum.currentStreak);
     setLatestReport(null);
     activeRef.current = nextExpedition;
     setActiveExpedition(nextExpedition);
@@ -275,6 +278,8 @@ export function RunQuestProvider({ children }: PropsWithChildren) {
       route: active.route,
       rulesetVersion: currentRuleset,
     };
+    const momentum = advanceExplorerMomentum(stateRef.current.momentum, endedAt);
+    const personalRecordUpdate = updatePersonalRecords(stateRef.current.personalRecords, workout);
     const nextState: RunQuestState = {
       ...stateRef.current,
       profile: {
@@ -289,11 +294,13 @@ export function RunQuestProvider({ children }: PropsWithChildren) {
           : stateRef.current.profile.achievements,
       },
       workouts: [workout, ...stateRef.current.workouts].slice(0, 200),
+      momentum,
+      personalRecords: personalRecordUpdate.records,
     };
     commitState(nextState, true);
     activeRef.current = null;
     setActiveExpedition(null);
-    setLatestReport({ workout, contract, contractProgress, contractCompleted, totalXpBefore, totalXpAfter, unlockedAchievementIds });
+    setLatestReport({ workout, contract, contractProgress, contractCompleted, totalXpBefore, totalXpAfter, unlockedAchievementIds, momentum, newPersonalRecordKinds: personalRecordUpdate.newRecordKinds, fieldBrief: active.fieldBrief });
   }, [clearSubscriptions, commitState]);
 
   const updateSettings = useCallback((patch: Partial<RunQuestState["settings"]>) => {
