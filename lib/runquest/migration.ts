@@ -31,6 +31,14 @@ const workoutSchema = z.object({
   contractRewardXp: z.number().int().nonnegative().max(10_000).optional(),
   route: z.array(routePointSchema).max(250),
   rulesetVersion: z.literal("rq-progression-v1"),
+  paceZoneSummary: z.object({
+    easySeconds: z.number().int().nonnegative().max(86_400),
+    steadySeconds: z.number().int().nonnegative().max(86_400),
+    briskSeconds: z.number().int().nonnegative().max(86_400),
+    swiftSeconds: z.number().int().nonnegative().max(86_400),
+    analyzedSeconds: z.number().int().nonnegative().max(86_400),
+    excludedSeconds: z.number().int().nonnegative().max(86_400),
+  }).optional(),
 });
 const persistedStateSchema = z.object({
   profile: z.object({

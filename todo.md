@@ -116,3 +116,10 @@ Audit scope confirmed: preserve local-first data ownership, Android 7 compatibil
 - [x] Add deterministic pace-zone, cue-throttling, migration, and haptic-preference tests; validate Android/web exports and mobile views
 
 Pace coaching scope confirmed: all guidance stays private and on-device, never performs health diagnosis, and keeps safety, user comfort, and optional feedback ahead of rewards.
+
+- [x] Add bounded route-based pace-zone time analysis for completed expeditions, with safe handling of sparse or invalid sample intervals
+- [x] Preserve prior workout history with migration-safe optional zone-summary fields and report-level fallbacks
+- [x] Add an accessible, local post-run zone-time breakdown with clear context rather than health or performance diagnosis
+- [x] Add deterministic zone-duration, legacy migration, and report-view validation; validate Android/web exports and mobile reporting views
+
+Post-run zone summary scope confirmed: analysis remains private, uses only accepted local route samples, and reports descriptive time distribution rather than medical or prescriptive conclusions.

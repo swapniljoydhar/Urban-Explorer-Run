@@ -6,7 +6,7 @@ import { createOfflineRegion, getActiveOfflineRegion, offlineTileCoordinates } f
 import { getOfflineArchiveFormat, isManagedRunQuestArchiveUri } from "@/lib/runquest/archive-formats";
 import { getExpeditionStory, getFieldBrief, getMomentumDebrief, getNatureMoment } from "@/lib/runquest/nature";
 import { advanceExplorerMomentum, updatePersonalRecords } from "@/lib/runquest/momentum";
-import { canPlayPaceCoachingCue, DEFAULT_PACE_COACH_STATE, evaluatePaceCoaching, formatPaceCoachLabel } from "@/lib/runquest/pace-coaching";
+import { canPlayPaceCoachingCue, DEFAULT_PACE_COACH_STATE, evaluatePaceCoaching, formatPaceCoachLabel, formatZoneDuration, summarizePaceZones } from "@/lib/runquest/pace-coaching";
 import { classifyPMTilesTerrain, parsePMTilesV3Header } from "@/lib/runquest/pmtiles-terrain";
 import { calculateLevel, calculateXp, encodeHexGridV1, processLocationSample } from "@/lib/runquest/engine";
 import { migrateRunQuestState } from "@/lib/runquest/migration";
@@ -177,6 +177,25 @@ describe("RunQuest compatibility-safe engine", () => {
     expect(canPlayPaceCoachingCue(true, false, true, false)).toBe(false);
     expect(canPlayPaceCoachingCue(true, true, false, false)).toBe(false);
     expect(canPlayPaceCoachingCue(true, true, true, true)).toBe(false);
+  });
+
+  it("summarizes accepted route time into local pace zones while excluding pauses and sparse intervals", () => {
+    const summary = summarizePaceZones([
+      { latitude: 37.7749, longitude: -122.4194, timestamp: 0, accuracy: 8 },
+      { latitude: 37.7752, longitude: -122.4194, timestamp: 15_000, accuracy: 8 },
+      { latitude: 37.7756, longitude: -122.4194, timestamp: 30_000, accuracy: 8 },
+      { latitude: 37.7764, longitude: -122.4194, timestamp: 45_000, accuracy: 8 },
+      { latitude: 37.77645, longitude: -122.4194, timestamp: 225_000, accuracy: 8 },
+    ]);
+    expect(summary).toEqual({ easySeconds: 0, steadySeconds: 30, briskSeconds: 0, swiftSeconds: 15, analyzedSeconds: 45, excludedSeconds: 180 });
+    expect(formatZoneDuration(summary.steadySeconds)).toBe("30s");
+    expect(formatZoneDuration(75)).toBe("1m 15s");
+  });
+
+  it("keeps historical workouts valid when a zone summary is absent and restores a valid saved summary", () => {
+    expect(migrateRunQuestState({ workouts: [workoutRecord()] }).workouts[0].paceZoneSummary).toBeUndefined();
+    const summary = { easySeconds: 10, steadySeconds: 20, briskSeconds: 30, swiftSeconds: 40, analyzedSeconds: 100, excludedSeconds: 5 };
+    expect(migrateRunQuestState({ workouts: [workoutRecord({ paceZoneSummary: summary })] }).workouts[0].paceZoneSummary).toEqual(summary);
   });
 
   it("recovers only valid persisted JSON so a backup snapshot can safely replace a malformed primary value", () => {

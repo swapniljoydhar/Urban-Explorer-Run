@@ -9,7 +9,7 @@ import { getContractProgress, getDailyContract, isContractClaimed } from "@/lib/
 import { createDemoPoint, createWorkoutId, currentRuleset, processLocationSample, resolveTitle } from "@/lib/runquest/engine";
 import { advanceExplorerMomentum, updatePersonalRecords } from "@/lib/runquest/momentum";
 import { getFieldBrief } from "@/lib/runquest/nature";
-import { canPlayPaceCoachingCue, DEFAULT_PACE_COACH_STATE, evaluatePaceCoaching } from "@/lib/runquest/pace-coaching";
+import { canPlayPaceCoachingCue, DEFAULT_PACE_COACH_STATE, evaluatePaceCoaching, summarizePaceZones } from "@/lib/runquest/pace-coaching";
 import { paceCoachingFeedback } from "@/lib/runquest/feedback";
 import { DEFAULT_RUNQUEST_STATE, loadRunQuestState, saveRunQuestState } from "@/lib/runquest/persistence";
 import { safelyRemoveSubscription } from "@/lib/runquest/subscriptions";
@@ -299,6 +299,7 @@ export function RunQuestProvider({ children }: PropsWithChildren) {
       contractRewardXp,
       route: active.route,
       rulesetVersion: currentRuleset,
+      paceZoneSummary: summarizePaceZones(active.route),
     };
     const momentum = advanceExplorerMomentum(stateRef.current.momentum, endedAt);
     const personalRecordUpdate = updatePersonalRecords(stateRef.current.personalRecords, workout);

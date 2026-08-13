@@ -11,6 +11,14 @@ import { getAchievement } from "@/lib/runquest/achievements";
 import { formatContractProgress } from "@/lib/runquest/contracts";
 import { useRunQuest } from "@/lib/runquest/context";
 import { getExpeditionStory, getMomentumDebrief, getNatureMoment } from "@/lib/runquest/nature";
+import { formatZoneDuration } from "@/lib/runquest/pace-coaching";
+
+const ZONE_ROWS = [
+  { key: "easySeconds", label: "Easy", color: rq.teal },
+  { key: "steadySeconds", label: "Steady", color: rq.cyan },
+  { key: "briskSeconds", label: "Brisk", color: rq.gold },
+  { key: "swiftSeconds", label: "Swift", color: rq.coral },
+] as const;
 
 export default function ReportScreen() {
   const router = useRouter();
@@ -23,6 +31,8 @@ export default function ReportScreen() {
   const { workout, contract, contractProgress, contractCompleted, totalXpBefore, totalXpAfter, unlockedAchievementIds, momentum, newPersonalRecordKinds, fieldBrief } = latestReport;
   const startLevel = calculateLevel(totalXpBefore);
   const endLevel = calculateLevel(totalXpAfter);
+  const paceSummary = workout.paceZoneSummary;
+  const analyzedSeconds = paceSummary?.analyzedSeconds ?? 0;
   const finish = () => { dismissReport(); router.replace("/(tabs)"); };
   const natureMoment = getNatureMoment(workout.startedAt);
 
@@ -45,6 +55,19 @@ export default function ReportScreen() {
           <View style={styles.momentumHeader}><View><Text style={styles.momentumEyebrow}>FIELD BRIEF / {fieldBrief.title.toUpperCase()}</Text><Text style={styles.momentumTitle}>{fieldBrief.objective}</Text></View><MaterialIcons name="explore" color={rq.teal} size={23} /></View>
           <Text style={styles.momentumBody}>{getMomentumDebrief(workout.newTileCount, momentum.currentStreak, newPersonalRecordKinds.length)}</Text>
           <View style={styles.momentumMetrics}><Metric label="Field streak" value={`${momentum.currentStreak} day${momentum.currentStreak === 1 ? "" : "s"}`} accent={rq.teal} /><Metric label="Best rhythm" value={`${momentum.longestStreak} day${momentum.longestStreak === 1 ? "" : "s"}`} accent={rq.gold} /></View>
+        </Panel>
+
+        <Panel style={styles.zonePanel}>
+          <View style={styles.zoneHeader}><View><Text style={styles.zoneEyebrow}>ROUTE RHYTHM</Text><Text style={styles.zoneTitle}>Time in pace zones</Text></View><MaterialIcons name="timeline" color={rq.cyan} size={23} /></View>
+          {analyzedSeconds > 0 ? <>
+            <Text style={styles.zoneBody}>A local view of accepted moving route segments. It describes route rhythm, not health or training advice.</Text>
+            <View style={styles.zoneRows}>{ZONE_ROWS.map((zone) => {
+              const seconds = paceSummary?.[zone.key] ?? 0;
+              const percent = Math.round(seconds / analyzedSeconds * 100);
+              return <View key={zone.key} style={styles.zoneRow}><View style={styles.zoneRowTop}><Text style={styles.zoneLabel}>{zone.label}</Text><Text style={styles.zoneValue}>{formatZoneDuration(seconds)} · {percent}%</Text></View><View style={styles.zoneTrack}><View style={[styles.zoneFill, { width: `${Math.max(seconds ? 5 : 0, percent)}%`, backgroundColor: zone.color }]} /></View></View>;
+            })}</View>
+            {(paceSummary?.excludedSeconds ?? 0) > 0 ? <Text style={styles.zoneNote}>{formatZoneDuration(paceSummary?.excludedSeconds ?? 0)} excluded for pauses, long gaps, or unstable movement.</Text> : null}
+          </> : <Text style={styles.zoneBody}>Not enough steady local route data formed a pace summary this time. Future reports will analyze accepted moving segments when the route has enough consistent samples.</Text>}
         </Panel>
 
         {newPersonalRecordKinds.length ? <Panel style={styles.recordPanel}>
@@ -90,6 +113,19 @@ const styles = StyleSheet.create({
   momentumTitle: { color: rq.cloud, fontSize: 15, lineHeight: 21, fontWeight: "900", marginTop: 3 },
   momentumBody: { color: rq.mist, fontSize: 12, lineHeight: 18, fontWeight: "600" },
   momentumMetrics: { flexDirection: "row", gap: 12, borderTopWidth: 1, borderTopColor: rq.border, paddingTop: 10 },
+  zonePanel: { gap: 10, backgroundColor: rq.cyan + "0D", borderColor: rq.cyan + "55" },
+  zoneHeader: { flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between", gap: 12 },
+  zoneEyebrow: { color: rq.cyan, fontSize: 10, letterSpacing: 1, fontWeight: "900" },
+  zoneTitle: { color: rq.cloud, fontSize: 16, fontWeight: "900", marginTop: 3 },
+  zoneBody: { color: rq.mist, fontSize: 12, lineHeight: 18, fontWeight: "600" },
+  zoneRows: { gap: 9 },
+  zoneRow: { gap: 4 },
+  zoneRowTop: { flexDirection: "row", justifyContent: "space-between", gap: 10 },
+  zoneLabel: { color: rq.cloud, fontSize: 12, fontWeight: "800" },
+  zoneValue: { color: rq.mist, fontSize: 11, fontWeight: "700" },
+  zoneTrack: { height: 7, borderRadius: 4, overflow: "hidden", backgroundColor: rq.midnight },
+  zoneFill: { height: "100%", borderRadius: 4 },
+  zoneNote: { color: rq.mist, fontSize: 10, lineHeight: 15, fontWeight: "600" },
   recordPanel: { gap: 4, borderColor: rq.gold + "88", backgroundColor: rq.gold + "12" },
   recordEyebrow: { color: rq.gold, fontSize: 10, letterSpacing: 1, fontWeight: "900" },
   recordText: { color: rq.cloud, fontSize: 14, lineHeight: 20, fontWeight: "900" },

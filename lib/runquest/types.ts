@@ -53,6 +53,8 @@ export type WorkoutRecord = {
   contractRewardXp: number;
   route: RoutePoint[];
   rulesetVersion: typeof PROGRESSION_RULESET_VERSION;
+  /** Optional for pre-summary history; calculated locally at expedition completion. */
+  paceZoneSummary?: PaceZoneSummary;
 };
 
 export type ExplorerMomentum = {
@@ -84,6 +86,15 @@ export type PaceCoachState = {
   message: string;
   lastCueAt: number | null;
   lastCuedZone: PaceZone | null;
+};
+
+export type PaceZoneSummary = {
+  easySeconds: number;
+  steadySeconds: number;
+  briskSeconds: number;
+  swiftSeconds: number;
+  analyzedSeconds: number;
+  excludedSeconds: number;
 };
 
 export type PlayerProfile = {

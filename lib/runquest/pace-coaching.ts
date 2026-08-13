@@ -1,10 +1,13 @@
 import { haversineMeters } from "@/lib/runquest/engine";
-import type { PaceCoachState, PaceZone, RoutePoint } from "@/lib/runquest/types";
+import type { PaceCoachState, PaceZone, PaceZoneSummary, RoutePoint } from "@/lib/runquest/types";
 
 const WINDOW_MS = 60_000;
 const MIN_WINDOW_MS = 15_000;
 const MIN_DISTANCE_METERS = 45;
 const CUE_INTERVAL_MS = 90_000;
+const MAX_SUMMARY_SEGMENT_MS = 120_000;
+const MIN_SUMMARY_SEGMENT_METERS = 3;
+const MAX_SUMMARY_SPEED_METERS_PER_SECOND = 13;
 
 const ZONE_COPY: Record<PaceZone, string> = {
   SETTLING: "Let the route settle before chasing a rhythm.",
@@ -22,7 +25,7 @@ export const DEFAULT_PACE_COACH_STATE: PaceCoachState = {
   lastCuedZone: null,
 };
 
-function zoneForSpeed(speedMetersPerSecond: number): PaceZone {
+export function paceZoneForSpeed(speedMetersPerSecond: number): PaceZone {
   if (speedMetersPerSecond < 2.2) return "EASY";
   if (speedMetersPerSecond < 3.1) return "STEADY";
   if (speedMetersPerSecond < 4.2) return "BRISK";
@@ -76,7 +79,7 @@ export function evaluatePaceCoaching(
   }
 
   const speedMetersPerSecond = distanceMeters / (elapsedMs / 1_000);
-  const zone = zoneForSpeed(speedMetersPerSecond);
+  const zone = paceZoneForSpeed(speedMetersPerSecond);
   const zoneChanged = zone !== previous.zone;
   const cueAllowed = zoneChanged
     && previous.lastCuedZone !== zone
@@ -96,4 +99,49 @@ export function formatPaceCoachLabel(paceSecondsPerKm: number | null): string {
   const minutes = Math.floor(paceSecondsPerKm / 60);
   const seconds = paceSecondsPerKm % 60;
   return `${minutes}:${seconds.toString().padStart(2, "0")} / km`;
+}
+
+export const EMPTY_PACE_ZONE_SUMMARY: PaceZoneSummary = {
+  easySeconds: 0,
+  steadySeconds: 0,
+  briskSeconds: 0,
+  swiftSeconds: 0,
+  analyzedSeconds: 0,
+  excludedSeconds: 0,
+};
+
+/**
+ * Assigns each accepted route segment to a pace zone. Long gaps, very short
+ * movement, invalid timestamps, and implausible speeds are excluded so a pause
+ * or sparse GPS sample cannot become invented performance time.
+ */
+export function summarizePaceZones(route: RoutePoint[]): PaceZoneSummary {
+  const summary = { ...EMPTY_PACE_ZONE_SUMMARY };
+  for (let index = 1; index < route.length; index += 1) {
+    const previous = route[index - 1];
+    const current = route[index];
+    const elapsedMs = current.timestamp - previous.timestamp;
+    const elapsedSeconds = Math.round(elapsedMs / 1_000);
+    if (elapsedSeconds <= 0) continue;
+    const distanceMeters = haversineMeters(previous, current);
+    const speedMetersPerSecond = distanceMeters / (elapsedMs / 1_000);
+    if (elapsedMs > MAX_SUMMARY_SEGMENT_MS || distanceMeters < MIN_SUMMARY_SEGMENT_METERS || speedMetersPerSecond > MAX_SUMMARY_SPEED_METERS_PER_SECOND) {
+      summary.excludedSeconds += elapsedSeconds;
+      continue;
+    }
+    const zone = paceZoneForSpeed(speedMetersPerSecond);
+    if (zone === "EASY") summary.easySeconds += elapsedSeconds;
+    if (zone === "STEADY") summary.steadySeconds += elapsedSeconds;
+    if (zone === "BRISK") summary.briskSeconds += elapsedSeconds;
+    if (zone === "SWIFT") summary.swiftSeconds += elapsedSeconds;
+    summary.analyzedSeconds += elapsedSeconds;
+  }
+  return summary;
+}
+
+export function formatZoneDuration(seconds: number): string {
+  const safeSeconds = Math.max(0, Math.round(seconds));
+  const minutes = Math.floor(safeSeconds / 60);
+  const remainder = safeSeconds % 60;
+  return minutes > 0 ? `${minutes}m ${remainder}s` : `${remainder}s`;
 }
