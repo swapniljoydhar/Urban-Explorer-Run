@@ -103,3 +103,9 @@ Approval received: PMTiles terrain-header integrity milestone only. Do not begin
 - [x] Add deterministic migration, streak, record, and narrative tests; validate Android/web exports and mobile views before checkpoint
 
 Competitor-inspired scope confirmed: adapt proven mechanics from location games and fitness trackers, but keep RunQuest single-player, local-first, Google-free, non-social, and Android 7 compatible.
+
+- [x] Audit the complete client, map, archive, persistence, sensor, configuration, and dependency surfaces for verified security and reliability risks
+- [x] Correct only confirmed vulnerabilities or compatibility defects with migration-safe, bounded fixes
+- [x] Re-run dependency audit, TypeScript, regression, lint, Android/web export, and targeted mobile-flow checks before checkpoint
+
+Audit scope confirmed: preserve local-first data ownership, Android 7 compatibility, Google-free maps, single-player boundaries, stable tile identities, and existing saved-state migration behavior.

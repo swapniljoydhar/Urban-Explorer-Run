@@ -3,15 +3,18 @@ import { describe, expect, it } from "vitest";
 import { getDailyContract } from "@/lib/runquest/contracts";
 import { evaluateNewAchievements } from "@/lib/runquest/achievements";
 import { createOfflineRegion, getActiveOfflineRegion, offlineTileCoordinates } from "@/lib/runquest/offline-regions";
-import { getOfflineArchiveFormat } from "@/lib/runquest/archive-formats";
+import { getOfflineArchiveFormat, isManagedRunQuestArchiveUri } from "@/lib/runquest/archive-formats";
 import { getExpeditionStory, getFieldBrief, getMomentumDebrief, getNatureMoment } from "@/lib/runquest/nature";
 import { advanceExplorerMomentum, updatePersonalRecords } from "@/lib/runquest/momentum";
 import { classifyPMTilesTerrain, parsePMTilesV3Header } from "@/lib/runquest/pmtiles-terrain";
 import { calculateLevel, calculateXp, encodeHexGridV1, processLocationSample } from "@/lib/runquest/engine";
 import { migrateRunQuestState } from "@/lib/runquest/migration";
+import { decodeRunQuestState } from "@/lib/runquest/persistence-codec";
 import { normalizeMapStyleUrl, OPENFREEMAP_STYLE_URL } from "@/lib/runquest/map-providers";
 import { canFollowCamera, createAccuracyFeature, getMarkerAccuracyBand, getAccuracyRadiusMeters, shouldInterruptFollow } from "@/lib/runquest/map-marker";
 import { safelyRemoveSubscription } from "@/lib/runquest/subscriptions";
+import { configuredCorsOrigins, resolveAllowedCorsOrigin } from "../server/_core/security";
+import { getSessionCookieOptions } from "../server/_core/cookies";
 import type { ActiveExpedition, RoutePoint, WorkoutRecord } from "@/lib/runquest/types";
 
 const firstPoint: RoutePoint = { latitude: 37.7749, longitude: -122.4194, timestamp: 1_000, accuracy: 8 };
@@ -150,6 +153,11 @@ describe("RunQuest compatibility-safe engine", () => {
     expect(migrated.personalRecords).toEqual([]);
   });
 
+  it("recovers only valid persisted JSON so a backup snapshot can safely replace a malformed primary value", () => {
+    expect(decodeRunQuestState("{not-json")).toBeNull();
+    expect(decodeRunQuestState(JSON.stringify({ profile: { totalXp: 321 } }))?.profile.totalXp).toBe(321);
+  });
+
   it("defaults legacy settings to the OpenFreeMap style without changing saved game data", () => {
     const migrated = migrateRunQuestState({ profile: { totalXp: 25 } });
     expect(migrated.settings.mapProvider).toBe("OpenFreeMap");
@@ -232,6 +240,26 @@ describe("RunQuest compatibility-safe engine", () => {
     expect(getOfflineArchiveFormat("region.mbtiles")).toBe("MBTiles");
     expect(getOfflineArchiveFormat("archive.zip")).toBeNull();
     expect(getOfflineArchiveFormat("archive")).toBeNull();
+  });
+
+  it("permits only RunQuest-managed archive files and rejects traversal-like paths", () => {
+    const root = "file:///data/user/0/example/files/runquest-archives/";
+    expect(isManagedRunQuestArchiveUri(`${root}archive-abc.rqterrain.pmtiles`, root)).toBe(true);
+    expect(isManagedRunQuestArchiveUri(`${root}subdir/archive.pmtiles`, root)).toBe(false);
+    expect(isManagedRunQuestArchiveUri("file:///data/user/0/example/files/other/archive.pmtiles", root)).toBe(false);
+  });
+
+  it("allows configured and paired preview origins without reflecting arbitrary credentialed origins", () => {
+    const configured = configuredCorsOrigins("https://trusted.example, invalid-value");
+    expect(resolveAllowedCorsOrigin("https://trusted.example", "3000-runquest.example", configured)).toBe("https://trusted.example");
+    expect(resolveAllowedCorsOrigin("https://8081-runquest.example", "3000-runquest.example", configured)).toBe("https://8081-runquest.example");
+    expect(resolveAllowedCorsOrigin("https://attacker.example", "3000-runquest.example", configured)).toBeNull();
+  });
+
+  it("uses host-only, http-only, same-site session cookies instead of a broad sibling-domain scope", () => {
+    const options = getSessionCookieOptions({ protocol: "https", headers: {} } as never);
+    expect(options).toMatchObject({ httpOnly: true, path: "/", sameSite: "lax", secure: true });
+    expect(options.domain).toBeUndefined();
   });
 
   it("creates local daylight cues without location or network input", () => {

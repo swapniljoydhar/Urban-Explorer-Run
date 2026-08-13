@@ -5,7 +5,7 @@ import * as Network from "expo-network";
 import * as Sharing from "expo-sharing";
 
 import { createOfflineRegion, offlineTileCoordinates } from "@/lib/runquest/offline-regions";
-import { getOfflineArchiveFormat } from "@/lib/runquest/archive-formats";
+import { getOfflineArchiveFormat, isManagedRunQuestArchiveUri } from "@/lib/runquest/archive-formats";
 import { classifyPMTilesTerrain, parsePMTilesV3Header, type PMTilesTerrainInspection } from "@/lib/runquest/pmtiles-terrain";
 import type { OfflineArchiveRecord, OfflineMapRegion } from "@/lib/runquest/types";
 
@@ -114,6 +114,12 @@ function archiveDirectory(): string {
   return `${FileSystem.documentDirectory}${ARCHIVE_ROOT}`;
 }
 
+function assertManagedArchiveUri(uri: string): void {
+  if (!isManagedRunQuestArchiveUri(uri, archiveDirectory())) {
+    throw new Error("This archive is outside RunQuest’s managed local storage and cannot be accessed.");
+  }
+}
+
 function safeArchiveName(name: string, format: OfflineArchiveRecord["format"]): string {
   const base = name.replace(/[^a-zA-Z0-9._-]/g, "_").slice(0, 96) || `runquest-archive.${format.toLowerCase()}`;
   return base.toLowerCase().endsWith(`.${format.toLowerCase()}`) ? base : `${base}.${format.toLowerCase()}`;
@@ -141,6 +147,7 @@ export async function importOfflineArchiveAsset(asset: { uri: string; name: stri
 
 export async function removeOfflineArchive(archive: OfflineArchiveRecord): Promise<void> {
   if (Platform.OS === "web") return;
+  assertManagedArchiveUri(archive.uri);
   await FileSystem.deleteAsync(archive.uri, { idempotent: true });
 }
 
@@ -148,6 +155,11 @@ export async function removeOfflineArchive(archive: OfflineArchiveRecord): Promi
 export async function inspectOfflineTerrainArchive(archive: OfflineArchiveRecord): Promise<OfflineTerrainArchiveInspection> {
   if (Platform.OS === "web") return { status: "WEB_UNAVAILABLE", message: "Terrain archive inspection is available in Android and iOS builds, not the browser preview." };
   if (archive.format !== "PMTiles") return { status: "NOT_TERRAIN", message: "Only PMTiles archives can carry the validated Terrarium terrain metadata used by RunQuest." };
+  try {
+    assertManagedArchiveUri(archive.uri);
+  } catch {
+    return { status: "MISSING", message: "This archive is outside RunQuest’s managed local storage and cannot be inspected." };
+  }
   const file = new File(archive.uri);
   if (!file.exists || file.size <= 0) return { status: "MISSING", message: "The imported PMTiles file is no longer available on this device." };
   const handle = file.open();
@@ -167,6 +179,7 @@ export async function inspectOfflineTerrainArchive(archive: OfflineArchiveRecord
 export async function shareOfflineArchive(archive: OfflineArchiveRecord): Promise<void> {
   if (Platform.OS === "web") throw new Error("Archive export is available in the Android and iOS app, not the browser preview.");
   if (!(await Sharing.isAvailableAsync())) throw new Error("File sharing is not available on this device.");
+  assertManagedArchiveUri(archive.uri);
   const info = await FileSystem.getInfoAsync(archive.uri);
   if (!info.exists) throw new Error("The archive file is no longer available to export.");
   await Sharing.shareAsync(archive.uri, { dialogTitle: `Export ${archive.name}`, mimeType: archive.format === "PMTiles" ? "application/octet-stream" : "application/x-sqlite3" });

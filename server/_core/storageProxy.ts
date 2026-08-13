@@ -2,9 +2,11 @@ import type { Express } from "express";
 import { ENV } from "./env";
 
 export function registerStorageProxy(app: Express) {
-  app.get("/manus-storage/*", async (req, res) => {
-    const key = (req.params as Record<string, string>)[0];
-    if (!key) {
+  app.get("/manus-storage/*key", async (req, res) => {
+    const rawKey = (req.params as unknown as Record<string, string | string[]>).key;
+    const key = Array.isArray(rawKey) ? rawKey.join("/") : rawKey ?? "";
+    const invalidKey = !key || key.length > 1_024 || key.split("/").some((segment) => !segment || segment === "." || segment === "..");
+    if (invalidKey) {
       res.status(400).send("Missing storage key");
       return;
     }
@@ -33,13 +35,20 @@ export function registerStorageProxy(app: Express) {
       }
 
       const { url } = (await forgeResp.json()) as { url: string };
-      if (!url) {
+      let signedUrl: URL;
+      try {
+        signedUrl = new URL(url);
+      } catch {
+        res.status(502).send("Invalid signed URL from backend");
+        return;
+      }
+      if (signedUrl.protocol !== "https:") {
         res.status(502).send("Empty signed URL from backend");
         return;
       }
 
       res.set("Cache-Control", "no-store");
-      res.redirect(307, url);
+      res.redirect(307, signedUrl.toString());
     } catch (err) {
       console.error("[StorageProxy] failed:", err);
       res.status(502).send("Storage proxy error");

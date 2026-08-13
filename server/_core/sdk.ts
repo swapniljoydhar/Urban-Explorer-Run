@@ -137,6 +137,7 @@ class SDKServer {
 
   private getSessionSecret() {
     const secret = ENV.cookieSecret;
+    if (secret.length < 32) throw new Error("Session signing is unavailable until JWT_SECRET is configured with at least 32 characters.");
     return new TextEncoder().encode(secret);
   }
 

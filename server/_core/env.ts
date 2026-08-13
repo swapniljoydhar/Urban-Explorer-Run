@@ -7,4 +7,12 @@ export const ENV = {
   isProduction: process.env.NODE_ENV === "production",
   forgeApiUrl: process.env.BUILT_IN_FORGE_API_URL ?? "",
   forgeApiKey: process.env.BUILT_IN_FORGE_API_KEY ?? "",
+  corsAllowedOrigins: process.env.CORS_ALLOWED_ORIGINS ?? "",
 };
+
+export function validateServerSecurityConfig(): void {
+  if (!ENV.isProduction) return;
+  if (ENV.cookieSecret.length < 32) {
+    throw new Error("JWT_SECRET must be configured with at least 32 characters in production.");
+  }
+}
