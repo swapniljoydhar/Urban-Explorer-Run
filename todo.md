@@ -78,8 +78,15 @@ Approval received: local archive import/export milestone only. Do not introduce 
 
 - [x] Establish a performance-safe natural-world visual system for terrain, weather-inspired map ambience, seasonal color language, and accessible motion
 - [x] Refine the expedition loop with contextual discovery moments, restorative pacing, and nature-grounded micro-rewards without adding background tracking
-- [ ] Improve map and atlas environmental feedback using MapLibre layers and local game data only; no Google services or public-tile prefetch
+- [x] Improve map and atlas environmental feedback using MapLibre layers and local game data only; no Google services or public-tile prefetch
 - [ ] Audit and remove only proven-unused template residue after regression coverage confirms safe cleanup
 - [x] Validate the natural-world refinement milestone with deterministic tests, Android/web exports, mobile visual verification, and memory-aware runtime checks
 
 Program approval received: continue iterative RunQuest refinement. Each milestone must remain local-first, Google-free, Android 7 compatible, bounded in memory, accessible, and checkpointed.
+
+- [x] Research and validate a permitted open terrain/contour source or local archive package compatible with MapLibre, OpenFreeMap, and Android 7
+- [x] Add bounded single-player terrain/contour overlays with visible attribution, graceful no-data fallback, and no public-tile prefetch
+- [x] Verify terrain overlay behavior in online, selected-pack, and no-data states without introducing cloud, social, leaderboard, or multiplayer features
+- [x] Validate the terrain milestone with deterministic tests, Android/web exports, mobile visual review, and performance checks before checkpoint
+
+Single-player rule confirmed: RunQuest must not add leaderboards, matchmaking, social competition, cloud profiles, or multiplayer dependencies.

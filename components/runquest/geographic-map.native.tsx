@@ -1,13 +1,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
-import { Camera, GeoJSONSource, Layer, Map, RasterSource, type CameraRef } from "@maplibre/maplibre-react-native";
+import { Camera, GeoJSONSource, Layer, Map, RasterDEMSource, RasterSource, type CameraRef } from "@maplibre/maplibre-react-native";
 
 import { CurrentLocationMarker } from "@/components/runquest/current-location-marker.native";
 import type { GeographicMapProps } from "@/components/runquest/geographic-map.types";
 import { rq } from "@/components/runquest/primitives";
 import { offlineTileUrlTemplate } from "@/lib/runquest/offline-packages";
 import { createAccuracyFeature, canFollowCamera, getMarkerAccuracyBand, getMarkerColor, shouldInterruptFollow, type MarkerFollowMode } from "@/lib/runquest/map-marker";
-import { OPENFREEMAP_ATTRIBUTION, OPENFREEMAP_STYLE_URL } from "@/lib/runquest/map-providers";
+import { OPENFREEMAP_ATTRIBUTION, OPENFREEMAP_STYLE_URL, TERRARIUM_TERRAIN_ATTRIBUTION, TERRARIUM_TERRAIN_TILES_URL } from "@/lib/runquest/map-providers";
 
 const DEFAULT_CENTER: [number, number] = [-122.4194, 37.7749];
 const LEGACY_OPEN_STREET_MAP_TILES = "https://tile.openstreetmap.org/{z}/{x}/{y}.png";
@@ -18,7 +18,7 @@ const BASE_STYLE = {
   layers: [{ id: "runquest-background", type: "background" as const, paint: { "background-color": rq.midnight } }],
 };
 
-export function GeographicMap({ route, tiles, currentPoint, offlineRegion, mapStyleUrl = OPENFREEMAP_STYLE_URL, reduceMotion = false }: GeographicMapProps) {
+export function GeographicMap({ route, tiles, currentPoint, offlineRegion, mapStyleUrl = OPENFREEMAP_STYLE_URL, reduceMotion = false, terrainOverlayEnabled = false }: GeographicMapProps) {
   const initialPoint = route[0] ?? currentPoint;
   const initialCenter: [number, number] = initialPoint ? [initialPoint.longitude, initialPoint.latitude] : DEFAULT_CENTER;
   const mapKey = initialPoint ? `map-${initialPoint.timestamp}` : "map-fallback";
@@ -82,6 +82,9 @@ export function GeographicMap({ route, tiles, currentPoint, offlineRegion, mapSt
         {offlineRegion && tileTemplate ? <RasterSource id={`atlas-tiles-${offlineRegion.id}`} tiles={[tileTemplate]} minzoom={0} maxzoom={18} tileSize={256} scheme="xyz" attribution={offlineRegion.provider === "OpenFreeMap" ? OPENFREEMAP_ATTRIBUTION : "© OpenStreetMap contributors"}>
           <Layer id="atlas-raster" type="raster" paint={{ "raster-opacity": 1 }} />
         </RasterSource> : null}
+        {terrainOverlayEnabled && !offlineRegion ? <RasterDEMSource id="runquest-terrain-dem" tiles={[TERRARIUM_TERRAIN_TILES_URL]} minzoom={0} maxzoom={15} tileSize={256} encoding="terrarium" attribution={TERRARIUM_TERRAIN_ATTRIBUTION}>
+          <Layer id="runquest-terrain-hillshade" type="hillshade" paint={{ "hillshade-exaggeration": 0.32, "hillshade-shadow-color": rq.midnight, "hillshade-highlight-color": rq.cloud, "hillshade-accent-color": rq.teal }} />
+        </RasterDEMSource> : null}
         <GeoJSONSource id="runquest-atlas-cells" data={atlasFeatures} tolerance={1}>
           <Layer id="runquest-atlas-cells-layer" type="circle" paint={{ "circle-radius": 11, "circle-color": ["match", ["get", "mastery"], "MASTERED", rq.gold, rq.teal], "circle-opacity": 0.3, "circle-stroke-color": ["match", ["get", "mastery"], "MASTERED", rq.gold, rq.teal], "circle-stroke-width": 1.5 }} />
         </GeoJSONSource>

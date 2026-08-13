@@ -5,6 +5,9 @@ export const LEGACY_OSM_PROVIDER_ID = "OpenStreetMap" as const;
 export const OPENFREEMAP_STYLE_URL = "https://tiles.openfreemap.org/styles/liberty";
 export const OPENFREEMAP_ATTRIBUTION = "OpenFreeMap © OpenMapTiles · Data from OpenStreetMap";
 export const OPENFREEMAP_LICENSE_URL = "https://openfreemap.org/";
+/** Open AWS/Mapzen bare-earth data; intentionally rendered only for the current online viewport. */
+export const TERRARIUM_TERRAIN_TILES_URL = "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png";
+export const TERRARIUM_TERRAIN_ATTRIBUTION = "Terrain: AWS Open Data / Mapzen Terrain Tiles";
 
 export type TileProviderId = typeof OPENFREEMAP_PROVIDER_ID | typeof LEGACY_OSM_PROVIDER_ID;
 

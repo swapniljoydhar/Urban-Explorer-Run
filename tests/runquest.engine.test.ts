@@ -204,6 +204,19 @@ describe("RunQuest compatibility-safe engine", () => {
     expect(getExpeditionStory(night, 0)).toContain("familiar path");
   });
 
+  it("migrates the terrain overlay preference without changing legacy map settings", () => {
+    const legacy = migrateRunQuestState({
+      version: 1,
+      settings: { mapProvider: "OpenFreeMap", mapStyleUrl: "https://tiles.openfreemap.org/styles/liberty" },
+    });
+    expect(legacy.settings.terrainOverlayEnabled).toBe(false);
+    const enabled = migrateRunQuestState({
+      version: 1,
+      settings: { terrainOverlayEnabled: true },
+    });
+    expect(enabled.settings.terrainOverlayEnabled).toBe(true);
+  });
+
   it("resolves the selected pack and falls back safely for legacy state", () => {
     const first = createOfflineRegion(37.7749, -122.4194, 1_000);
     const second = createOfflineRegion(40.7128, -74.006, 2_000);

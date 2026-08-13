@@ -51,6 +51,7 @@ const persistedStateSchema = z.object({
     reduceMotion: z.boolean().optional(),
     mapProvider: z.enum(["OpenFreeMap", "OpenStreetMap"]).optional(),
     mapStyleUrl: z.string().url().max(512).refine((value) => value.startsWith("https://")).optional(),
+    terrainOverlayEnabled: z.boolean().optional(),
   }).optional(),
   offlineRegions: z.array(z.object({
     id: z.string().regex(/^atlas-\d+-\d+-\d+$/),

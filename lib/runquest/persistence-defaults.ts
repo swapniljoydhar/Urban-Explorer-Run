@@ -5,7 +5,7 @@ export const DEFAULT_RUNQUEST_STATE: RunQuestState = {
   profile: { totalXp: 0, title: "Neighborhood Scout", badges: [], completedContractClaims: [], achievements: [] },
   tiles: {},
   workouts: [],
-  settings: { trackingMode: "balanced", hapticsEnabled: true, reduceMotion: false, mapProvider: "OpenFreeMap", mapStyleUrl: "https://tiles.openfreemap.org/styles/liberty" },
+  settings: { trackingMode: "balanced", hapticsEnabled: true, reduceMotion: false, mapProvider: "OpenFreeMap", mapStyleUrl: "https://tiles.openfreemap.org/styles/liberty", terrainOverlayEnabled: false },
   offlineRegions: [],
   activeOfflineRegionId: null,
   offlineArchives: [],

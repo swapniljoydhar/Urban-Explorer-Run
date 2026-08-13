@@ -72,7 +72,7 @@ export default function ExpeditionScreen() {
         </View>
 
         <View style={styles.mapWrap}>
-          <GeographicMap route={active.route} tiles={Object.values(state.tiles)} currentPoint={active.lastPoint} offlineRegion={getActiveOfflineRegion(state)} mapStyleUrl={state.settings.mapStyleUrl} reduceMotion={state.settings.reduceMotion} />
+          <GeographicMap route={active.route} tiles={Object.values(state.tiles)} currentPoint={active.lastPoint} offlineRegion={getActiveOfflineRegion(state)} mapStyleUrl={state.settings.mapStyleUrl} reduceMotion={state.settings.reduceMotion} terrainOverlayEnabled={state.settings.terrainOverlayEnabled} />
           <View style={styles.mapOverlay}><Text style={[styles.mapEyebrow, { color: natureMoment.accent }]}>{natureMoment.shortLabel} / EXPEDITION MAP</Text><Text style={styles.mapTitle}>{natureMoment.title} is guiding this local route.</Text></View>
         </View>
 

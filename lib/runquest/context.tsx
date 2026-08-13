@@ -40,6 +40,7 @@ type RunQuestContextValue = {
   setHapticsEnabled: (enabled: boolean) => void;
   setReduceMotion: (enabled: boolean) => void;
   setMapStyleUrl: (url: string) => void;
+  setTerrainOverlayEnabled: (enabled: boolean) => void;
   offlineAction: { state: "IDLE" | "DOWNLOADING" | "ERROR"; completed: number; total: number; message: string | null };
   downloadCurrentOfflineRegion: () => Promise<void>;
   removeOfflineRegion: (id: string) => Promise<void>;
@@ -399,6 +400,7 @@ export function RunQuestProvider({ children }: PropsWithChildren) {
     setHapticsEnabled: (hapticsEnabled) => updateSettings({ hapticsEnabled }),
     setReduceMotion: (reduceMotion) => updateSettings({ reduceMotion }),
     setMapStyleUrl,
+    setTerrainOverlayEnabled: (terrainOverlayEnabled) => updateSettings({ terrainOverlayEnabled }),
     offlineAction,
     downloadCurrentOfflineRegion,
     removeOfflineRegion: removeOfflineMapRegion,

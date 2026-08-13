@@ -7,4 +7,5 @@ export type GeographicMapProps = {
   offlineRegion?: OfflineMapRegion | null;
   mapStyleUrl?: string;
   reduceMotion?: boolean;
+  terrainOverlayEnabled?: boolean;
 };

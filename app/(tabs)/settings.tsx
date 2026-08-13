@@ -14,7 +14,7 @@ function CapabilityCard({ icon, capability }: { icon: React.ComponentProps<typeo
 }
 
 export default function SettingsScreen() {
-  const { hydrated, state, capabilities, refreshCapabilities, setTrackingMode, setHapticsEnabled, setReduceMotion, setMapStyleUrl, offlineAction, downloadCurrentOfflineRegion, removeOfflineRegion, setActiveOfflineRegion, inspectOfflineRegion, repairOfflineRegion, importOfflineArchive, exportOfflineArchive, removeOfflineArchive } = useRunQuest();
+  const { hydrated, state, capabilities, refreshCapabilities, setTrackingMode, setHapticsEnabled, setReduceMotion, setMapStyleUrl, setTerrainOverlayEnabled, offlineAction, downloadCurrentOfflineRegion, removeOfflineRegion, setActiveOfflineRegion, inspectOfflineRegion, repairOfflineRegion, importOfflineArchive, exportOfflineArchive, removeOfflineArchive } = useRunQuest();
   const [styleDraft, setStyleDraft] = useState(OPENFREEMAP_STYLE_URL);
   const [regionInspections, setRegionInspections] = useState<Record<string, OfflineRegionInspection>>({});
   const [providerMessage, setProviderMessage] = useState<string | null>(null);
@@ -59,6 +59,8 @@ export default function SettingsScreen() {
           <View style={styles.switchRow}><View style={styles.switchCopy}><Text style={styles.switchTitle}>Haptic feedback</Text><Text style={styles.switchBody}>Short feedback for start, pause, and new territory.</Text></View><Switch value={state.settings.hapticsEnabled} onValueChange={setHapticsEnabled} trackColor={{ false: rq.border, true: rq.teal + "AA" }} thumbColor={state.settings.hapticsEnabled ? rq.teal : rq.mist} /></View>
           <View style={styles.switchDivider} />
           <View style={styles.switchRow}><View style={styles.switchCopy}><Text style={styles.switchTitle}>Reduce motion</Text><Text style={styles.switchBody}>Use steady visual feedback in place of motion-heavy effects.</Text></View><Switch value={state.settings.reduceMotion} onValueChange={setReduceMotion} trackColor={{ false: rq.border, true: rq.teal + "AA" }} thumbColor={state.settings.reduceMotion ? rq.teal : rq.mist} /></View>
+          <View style={styles.switchDivider} />
+          <View style={styles.switchRow}><View style={styles.switchCopy}><Text style={styles.switchTitle}>Terrain light</Text><Text style={styles.switchBody}>Add a gentle online hillshade to live maps. It never downloads into offline packs and turns off while an Atlas pack is active.</Text></View><Switch value={state.settings.terrainOverlayEnabled} onValueChange={setTerrainOverlayEnabled} trackColor={{ false: rq.border, true: rq.teal + "AA" }} thumbColor={state.settings.terrainOverlayEnabled ? rq.teal : rq.mist} /></View>
         </Panel>
 
         <Panel style={styles.providerPanel}>

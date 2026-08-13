@@ -83,6 +83,8 @@ export type RunQuestSettings = {
   /** Added as optional-compatible settings; legacy v1 data defaults to OpenFreeMap. */
   mapProvider: "OpenFreeMap" | "OpenStreetMap";
   mapStyleUrl: string;
+  /** A visual-only online hillshade; never downloaded into Atlas packs. */
+  terrainOverlayEnabled: boolean;
 };
 
 export type OfflineMapRegion = {
