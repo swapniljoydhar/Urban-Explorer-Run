@@ -4,6 +4,7 @@ import { getDailyContract } from "@/lib/runquest/contracts";
 import { evaluateNewAchievements } from "@/lib/runquest/achievements";
 import { createOfflineRegion, getActiveOfflineRegion, offlineTileCoordinates } from "@/lib/runquest/offline-regions";
 import { getOfflineArchiveFormat } from "@/lib/runquest/archive-formats";
+import { getExpeditionStory, getNatureMoment } from "@/lib/runquest/nature";
 import { calculateLevel, calculateXp, encodeHexGridV1, processLocationSample } from "@/lib/runquest/engine";
 import { migrateRunQuestState } from "@/lib/runquest/migration";
 import { normalizeMapStyleUrl, OPENFREEMAP_STYLE_URL } from "@/lib/runquest/map-providers";
@@ -188,6 +189,19 @@ describe("RunQuest compatibility-safe engine", () => {
     expect(getOfflineArchiveFormat("region.mbtiles")).toBe("MBTiles");
     expect(getOfflineArchiveFormat("archive.zip")).toBeNull();
     expect(getOfflineArchiveFormat("archive")).toBeNull();
+  });
+
+  it("creates local daylight cues without location or network input", () => {
+    const dawn = new Date(2026, 5, 21, 6, 30).getTime();
+    const midday = new Date(2026, 5, 21, 12, 0).getTime();
+    const evening = new Date(2026, 5, 21, 18, 30).getTime();
+    const night = new Date(2026, 5, 21, 22, 0).getTime();
+    expect(getNatureMoment(dawn).phase).toBe("DAWN");
+    expect(getNatureMoment(midday).phase).toBe("DAY");
+    expect(getNatureMoment(evening).phase).toBe("GOLDEN_HOUR");
+    expect(getNatureMoment(night).phase).toBe("NIGHT");
+    expect(getExpeditionStory(dawn, 2)).toContain("new ground");
+    expect(getExpeditionStory(night, 0)).toContain("familiar path");
   });
 
   it("resolves the selected pack and falls back safely for legacy state", () => {

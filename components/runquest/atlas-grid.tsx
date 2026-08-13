@@ -25,8 +25,8 @@ export function AtlasGrid({ discovered, active = false, routePoints = 0 }: { dis
       return {
         key: `cell-${index}`,
         points: hexPoints(x, y, 25),
-        fill: isActive ? rq.gold : isKnown ? rq.teal : rq.panel,
-        opacity: isKnown ? 0.93 : 0.74,
+        fill: isActive ? rq.gold : isKnown ? "#4E8F61" : rq.panel,
+        opacity: isKnown ? 0.9 : 0.7,
       };
     });
   }, [active, discovered]);
@@ -36,11 +36,11 @@ export function AtlasGrid({ discovered, active = false, routePoints = 0 }: { dis
     <View style={styles.wrap} accessibilityLabel={`${discovered} discovered atlas cells`}>
       <Svg width="100%" height={224} viewBox="0 0 350 224">
         {cells.map((cell) => <Polygon key={cell.key} points={cell.points} fill={cell.fill} opacity={cell.opacity} stroke={rq.border} strokeWidth={1.2} />)}
-        {route ? <Polyline points={route} fill="none" stroke={rq.cyan} strokeWidth={4} strokeLinecap="round" strokeLinejoin="round" /> : null}
+        {route ? <Polyline points={route} fill="none" stroke={rq.cyan} strokeWidth={3.5} strokeLinecap="round" strokeLinejoin="round" opacity={0.9} /> : null}
       </Svg>
       <View style={styles.caption}>
         <View style={[styles.legendDot, { backgroundColor: rq.teal }]} />
-        <Text style={styles.captionText}>Your persistent atlas</Text>
+        <Text style={styles.captionText}>{discovered ? "Ground remembered locally" : "A field atlas waiting to grow"}</Text>
       </View>
     </View>
   );

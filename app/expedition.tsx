@@ -6,6 +6,7 @@ import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 
 import { GeographicMap } from "@/components/runquest/geographic-map";
 import { ContractProgress } from "@/components/runquest/contract-progress";
+import { NatureSignal } from "@/components/runquest/nature-signal";
 import { Metric, Panel, PrimaryButton, rq, SmallButton, StatePill } from "@/components/runquest/primitives";
 import { ScreenContainer } from "@/components/screen-container";
 import { formatDistance, formatDuration } from "@/lib/runquest/format";
@@ -13,6 +14,7 @@ import { formatContractProgress, getContractProgress, getDailyContract, isContra
 import { useRunQuest } from "@/lib/runquest/context";
 import { lightFeedback, mediumFeedback, successFeedback } from "@/lib/runquest/feedback";
 import { getActiveOfflineRegion } from "@/lib/runquest/offline-regions";
+import { getNatureMoment } from "@/lib/runquest/nature";
 
 function ActiveScreenLock() {
   useKeepAwake("runquest-expedition", { suppressDeactivateWarnings: true });
@@ -35,6 +37,7 @@ export default function ExpeditionScreen() {
   const contract = getDailyContract();
   const contractProgress = getContractProgress(state, contract, active);
   const contractClaimed = isContractClaimed(state, contract);
+  const natureMoment = useMemo(() => getNatureMoment(active?.startedAt ?? now), [active?.startedAt, now]);
 
   if (!active) {
     return (
@@ -70,7 +73,7 @@ export default function ExpeditionScreen() {
 
         <View style={styles.mapWrap}>
           <GeographicMap route={active.route} tiles={Object.values(state.tiles)} currentPoint={active.lastPoint} offlineRegion={getActiveOfflineRegion(state)} mapStyleUrl={state.settings.mapStyleUrl} reduceMotion={state.settings.reduceMotion} />
-          <View style={styles.mapOverlay}><Text style={styles.mapEyebrow}>GEOGRAPHIC EXPEDITION MAP</Text><Text style={styles.mapTitle}>Your route and atlas cells appear here.</Text></View>
+          <View style={styles.mapOverlay}><Text style={[styles.mapEyebrow, { color: natureMoment.accent }]}>{natureMoment.shortLabel} / EXPEDITION MAP</Text><Text style={styles.mapTitle}>{natureMoment.title} is guiding this local route.</Text></View>
         </View>
 
         <Panel style={styles.metricsPanel}>
@@ -82,6 +85,8 @@ export default function ExpeditionScreen() {
           <View style={styles.divider} />
           <View style={styles.statusRow}><View style={styles.liveDot} /><Text style={styles.notice}>{active.notice}</Text></View>
         </Panel>
+
+        <NatureSignal moment={natureMoment} compact />
 
         <Panel style={styles.contractPanel}>
           <View style={styles.contractTop}><View><Text style={styles.contractEyebrow}>ACTIVE FIELD CONTRACT</Text><Text style={styles.contractTitle}>{contract.title}</Text></View><StatePill state={contractClaimed ? "AVAILABLE" : "LIMITED"} label={contractClaimed ? "CLAIMED" : `${contract.rewardXp} XP`} /></View>

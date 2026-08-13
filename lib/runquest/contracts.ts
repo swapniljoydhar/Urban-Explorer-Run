@@ -1,9 +1,9 @@
 import type { ActiveExpedition, FieldContract, RunQuestState } from "@/lib/runquest/types";
 
 const contracts: Omit<FieldContract, "claimKey">[] = [
-  { kind: "FRONTIER", title: "Frontier Scan", instruction: "Reveal 2 new atlas cells today.", target: 2, rewardXp: 150, unit: "cells" },
-  { kind: "ENDURANCE", title: "Long Line", instruction: "Record 1.2 km of expedition distance today.", target: 1_200, rewardXp: 140, unit: "meters" },
-  { kind: "EXPEDITION", title: "Field Check", instruction: "Complete 1 expedition today.", target: 1, rewardXp: 100, unit: "expedition" },
+  { kind: "FRONTIER", title: "New Ground", instruction: "Reveal 2 new atlas cells on a field walk today.", target: 2, rewardXp: 150, unit: "cells" },
+  { kind: "ENDURANCE", title: "Long Trail", instruction: "Record 1.2 km of steady expedition distance today.", target: 1_200, rewardXp: 140, unit: "meters" },
+  { kind: "EXPEDITION", title: "Return to the Field", instruction: "Complete 1 expedition and leave a local trail note today.", target: 1, rewardXp: 100, unit: "expedition" },
 ];
 
 export function localDayKey(timestamp = Date.now()): string {

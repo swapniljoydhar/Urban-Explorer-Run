@@ -4,6 +4,7 @@ import { useRouter } from "expo-router";
 
 import { AtlasGrid } from "@/components/runquest/atlas-grid";
 import { ContractProgress } from "@/components/runquest/contract-progress";
+import { NatureSignal } from "@/components/runquest/nature-signal";
 import { LoadingState, Metric, Panel, PrimaryButton, rq, StatePill } from "@/components/runquest/primitives";
 import { ScreenContainer } from "@/components/screen-container";
 import { levelProgress } from "@/lib/runquest/engine";
@@ -11,6 +12,7 @@ import { formatContractProgress, getContractProgress, getDailyContract, isContra
 import { formatDistance } from "@/lib/runquest/format";
 import { useRunQuest } from "@/lib/runquest/context";
 import { lightFeedback } from "@/lib/runquest/feedback";
+import { getNatureMoment } from "@/lib/runquest/nature";
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -19,6 +21,7 @@ export default function HomeScreen() {
   const latestWorkout = state.workouts[0];
   const locationState = capabilities?.location.state ?? "LIMITED";
   const contract = getDailyContract();
+  const natureMoment = getNatureMoment();
   const contractProgress = getContractProgress(state, contract);
   const contractClaimed = isContractClaimed(state, contract);
 
@@ -35,10 +38,10 @@ export default function HomeScreen() {
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.headerRow}>
           <View>
-            <Text style={styles.eyebrow}>RUNQUEST / LOCAL ATLAS</Text>
-            <Text style={styles.title}>Good to explore?</Text>
+            <Text style={styles.eyebrow}>RUNQUEST / LIVING ATLAS</Text>
+            <Text style={styles.title}>Ready for the field?</Text>
           </View>
-          <StatePill state={locationState} label={locationState === "AVAILABLE" ? "LIVE READY" : "DEMO READY"} />
+          <StatePill state={locationState} label={locationState === "AVAILABLE" ? "LIVE" : "DEMO"} />
         </View>
 
         <Panel style={styles.levelPanel}>
@@ -52,6 +55,8 @@ export default function HomeScreen() {
           <View style={styles.progressTrack}><View style={[styles.progressFill, { width: `${Math.max(5, level.progress * 100)}%` }]} /></View>
           <Text style={styles.progressCaption}>{Math.max(0, level.nextFloor - state.profile.totalXp)} XP to level {level.currentLevel + 1}</Text>
         </Panel>
+
+        <NatureSignal moment={natureMoment} />
 
         <AtlasGrid discovered={Object.keys(state.tiles).length} />
 
@@ -70,7 +75,7 @@ export default function HomeScreen() {
         <PrimaryButton label="Start expedition" icon="play-arrow" onPress={handleStart} />
 
         <Panel style={styles.statsPanel}>
-          <Text style={styles.sectionLabel}>LOCAL EXPEDITION RECORD</Text>
+          <Text style={styles.sectionLabel}>LOCAL TRAIL LEDGER</Text>
           <View style={styles.metricRow}>
             <Metric label="Atlas cells" value={String(Object.keys(state.tiles).length)} accent={rq.teal} />
             <Metric label="Last distance" value={latestWorkout ? formatDistance(latestWorkout.distanceMeters) : "—"} accent={rq.cyan} />

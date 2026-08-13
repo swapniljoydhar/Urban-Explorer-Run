@@ -3,16 +3,16 @@ import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-nati
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 
 export const rq = {
-  midnight: "#09141B",
-  deepSlate: "#12252F",
-  panel: "#17333E",
-  teal: "#32D6B0",
-  cyan: "#53C7FF",
-  gold: "#FFD166",
-  coral: "#FF6B6B",
-  cloud: "#EAF4F4",
-  mist: "#9DB2B8",
-  border: "#244853",
+  midnight: "#081611",
+  deepSlate: "#10251A",
+  panel: "#173528",
+  teal: "#71D6A4",
+  cyan: "#79C7D5",
+  gold: "#F6C768",
+  coral: "#E9785D",
+  cloud: "#EFF7EE",
+  mist: "#A9BCA9",
+  border: "#2D5742",
 };
 
 export function Panel({ children, style }: { children: ReactNode; style?: object }) {

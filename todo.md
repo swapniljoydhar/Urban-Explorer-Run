@@ -75,3 +75,11 @@ Approval received: offline-pack management milestone only. Do not begin sensor f
 - [x] Add deterministic archive-header/metadata validation tests and run pnpm check, pnpm test, pnpm lint, Android/web exports, and preview/device verification before checkpoint
 
 Approval received: local archive import/export milestone only. Do not introduce public-tile prefetch, cloud sync, background services, or unrelated native-app architecture.
+
+- [x] Establish a performance-safe natural-world visual system for terrain, weather-inspired map ambience, seasonal color language, and accessible motion
+- [x] Refine the expedition loop with contextual discovery moments, restorative pacing, and nature-grounded micro-rewards without adding background tracking
+- [ ] Improve map and atlas environmental feedback using MapLibre layers and local game data only; no Google services or public-tile prefetch
+- [ ] Audit and remove only proven-unused template residue after regression coverage confirms safe cleanup
+- [x] Validate the natural-world refinement milestone with deterministic tests, Android/web exports, mobile visual verification, and memory-aware runtime checks
+
+Program approval received: continue iterative RunQuest refinement. Each milestone must remain local-first, Google-free, Android 7 compatible, bounded in memory, accessible, and checkpointed.

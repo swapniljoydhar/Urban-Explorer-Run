@@ -3,12 +3,14 @@ import { useRouter } from "expo-router";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 
 import { Metric, Panel, PrimaryButton, rq, StatePill } from "@/components/runquest/primitives";
+import { NatureSignal } from "@/components/runquest/nature-signal";
 import { ScreenContainer } from "@/components/screen-container";
 import { formatDistance } from "@/lib/runquest/format";
 import { calculateLevel } from "@/lib/runquest/engine";
 import { getAchievement } from "@/lib/runquest/achievements";
 import { formatContractProgress } from "@/lib/runquest/contracts";
 import { useRunQuest } from "@/lib/runquest/context";
+import { getExpeditionStory, getNatureMoment } from "@/lib/runquest/nature";
 
 export default function ReportScreen() {
   const router = useRouter();
@@ -22,14 +24,17 @@ export default function ReportScreen() {
   const startLevel = calculateLevel(totalXpBefore);
   const endLevel = calculateLevel(totalXpAfter);
   const finish = () => { dismissReport(); router.replace("/(tabs)"); };
+  const natureMoment = getNatureMoment(workout.startedAt);
 
   return (
     <ScreenContainer className="px-5" safeAreaClassName="bg-background">
       <View style={styles.root}>
-        <View style={styles.heroIcon}><MaterialIcons name="explore" color={rq.midnight} size={30} /></View>
-        <Text style={styles.eyebrow}>EXPEDITION COMPLETE</Text>
-        <Text style={styles.title}>{workout.newTileCount > 0 ? "Your atlas moved outward." : "You held the line."}</Text>
-        <Text style={styles.body}>Your route and rewards were committed to the local atlas. Here is what this outing changed.</Text>
+        <View style={styles.heroIcon}><MaterialIcons name="terrain" color={rq.midnight} size={30} /></View>
+        <Text style={styles.eyebrow}>FIELD NOTE RECORDED</Text>
+        <Text style={styles.title}>{getExpeditionStory(workout.startedAt, workout.newTileCount)}</Text>
+        <Text style={styles.body}>Your route and rewards now live in the private local atlas. Here is what this outing changed.</Text>
+
+        <NatureSignal moment={natureMoment} compact />
 
         <Panel style={styles.summary}>
           <View style={styles.metricRow}><Metric label="Distance" value={formatDistance(workout.distanceMeters)} accent={rq.teal} /><Metric label="New cells" value={String(workout.newTileCount)} accent={rq.gold} /><Metric label="XP earned" value={`+${workout.xpEarned + workout.contractRewardXp}`} accent={rq.cyan} /></View>
