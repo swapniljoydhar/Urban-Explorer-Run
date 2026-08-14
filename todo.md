@@ -127,3 +127,6 @@ Post-run zone summary scope confirmed: analysis remains private, uses only accep
 - [x] Reproduce the reported missing Route Rhythm display with a completed demo and live expedition state
 - [x] Fix the confirmed report visibility or zone-summary data-path defect without breaking prior workout history
 - [x] Add regression coverage for the completed-report summary state and validate Android/web report rendering before checkpoint
+- [x] Inspect the recovered Replit-era Urban-Explorer-Run1 repository as reference material without changing current RunQuest code
+- [x] Compare its architecture, dependencies, maps, gameplay, data handling, and assets against the current local-first Android build
+- [x] Document a prioritized recovery path that identifies safe ports, historical reference only, and incompatible or risky elements
