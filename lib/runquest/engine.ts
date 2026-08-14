@@ -164,10 +164,10 @@ export function processLocationSample(
   };
 }
 
-export function createDemoPoint(sequence: number): RoutePoint {
+export function createDemoPoint(sequence: number, timestamp = Date.now()): RoutePoint {
   const latitude = 37.7749 + Math.sin(sequence * 0.8) * 0.0014 + sequence * 0.00011;
   const longitude = -122.4194 + Math.cos(sequence * 0.65) * 0.0012 + sequence * 0.00008;
-  return { latitude, longitude, timestamp: Date.now(), accuracy: 12 };
+  return { latitude, longitude, timestamp, accuracy: 12 };
 }
 
 export function createWorkoutId(startedAt: number): string {

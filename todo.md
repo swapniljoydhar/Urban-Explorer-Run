@@ -123,3 +123,7 @@ Pace coaching scope confirmed: all guidance stays private and on-device, never p
 - [x] Add deterministic zone-duration, legacy migration, and report-view validation; validate Android/web exports and mobile reporting views
 
 Post-run zone summary scope confirmed: analysis remains private, uses only accepted local route samples, and reports descriptive time distribution rather than medical or prescriptive conclusions.
+
+- [x] Reproduce the reported missing Route Rhythm display with a completed demo and live expedition state
+- [x] Fix the confirmed report visibility or zone-summary data-path defect without breaking prior workout history
+- [x] Add regression coverage for the completed-report summary state and validate Android/web report rendering before checkpoint

@@ -271,15 +271,16 @@ export function RunQuestProvider({ children }: PropsWithChildren) {
     const active = activeRef.current;
     if (!active || active.mode !== "demo" || active.status !== "active") return;
     const nextSequence = active.demoSequence + 1;
+    const demoTimestamp = Math.max(Date.now(), (active.lastPoint?.timestamp ?? (Date.now() - 20_000)) + 20_000);
     activeRef.current = { ...active, demoSequence: nextSequence };
-    applyPoint(createDemoPoint(nextSequence));
+    applyPoint(createDemoPoint(nextSequence, demoTimestamp));
   }, [applyPoint]);
 
   const endExpedition = useCallback(async () => {
     const active = activeRef.current;
     if (!active) return;
     clearSubscriptions();
-    const endedAt = Date.now();
+    const endedAt = Math.max(Date.now(), active.lastPoint?.timestamp ?? Date.now());
     const contract = getDailyContract(endedAt);
     const contractProgress = getContractProgress(stateRef.current, contract, active, endedAt);
     const contractCompleted = contractProgress >= contract.target && !isContractClaimed(stateRef.current, contract);

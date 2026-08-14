@@ -101,7 +101,7 @@ export default function ExpeditionScreen() {
           <ContractProgress progress={contractProgress} target={contract.target} label={formatContractProgress(contract, contractProgress)} reduceMotion={state.settings.reduceMotion} claimed={contractClaimed} compact />
         </Panel>
 
-        {active.mode === "demo" ? <PrimaryButton label="Simulate a discovery" icon="add-location-alt" onPress={handleDemo} tone="slate" disabled={isPaused} /> : null}
+        {active.mode === "demo" ? <PrimaryButton label="Simulate a 20s route sample" icon="add-location-alt" onPress={handleDemo} tone="slate" disabled={isPaused} /> : null}
 
         <View style={styles.controls}>
           <SmallButton label={isPaused ? "Resume" : "Pause"} onPress={handlePause} active={isPaused} />

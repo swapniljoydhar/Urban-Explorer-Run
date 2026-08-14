@@ -8,7 +8,7 @@ import { getExpeditionStory, getFieldBrief, getMomentumDebrief, getNatureMoment 
 import { advanceExplorerMomentum, updatePersonalRecords } from "@/lib/runquest/momentum";
 import { canPlayPaceCoachingCue, DEFAULT_PACE_COACH_STATE, evaluatePaceCoaching, formatPaceCoachLabel, formatZoneDuration, summarizePaceZones } from "@/lib/runquest/pace-coaching";
 import { classifyPMTilesTerrain, parsePMTilesV3Header } from "@/lib/runquest/pmtiles-terrain";
-import { calculateLevel, calculateXp, encodeHexGridV1, processLocationSample } from "@/lib/runquest/engine";
+import { calculateLevel, calculateXp, createDemoPoint, encodeHexGridV1, processLocationSample } from "@/lib/runquest/engine";
 import { migrateRunQuestState } from "@/lib/runquest/migration";
 import { decodeRunQuestState } from "@/lib/runquest/persistence-codec";
 import { normalizeMapStyleUrl, OPENFREEMAP_STYLE_URL } from "@/lib/runquest/map-providers";
@@ -190,6 +190,16 @@ describe("RunQuest compatibility-safe engine", () => {
     expect(summary).toEqual({ easySeconds: 0, steadySeconds: 30, briskSeconds: 0, swiftSeconds: 15, analyzedSeconds: 45, excludedSeconds: 180 });
     expect(formatZoneDuration(summary.steadySeconds)).toBe("30s");
     expect(formatZoneDuration(75)).toBe("1m 15s");
+  });
+
+  it("creates demo route samples with supplied simulated timestamps so an end-to-end demo can produce a visible zone summary", () => {
+    const first = createDemoPoint(1, 1_000);
+    const second = createDemoPoint(2, 21_000);
+    const third = createDemoPoint(3, 41_000);
+    const firstOutcome = processLocationSample(expedition(), {}, first);
+    const secondOutcome = processLocationSample(firstOutcome.nextExpedition, firstOutcome.nextTiles, second);
+    const thirdOutcome = processLocationSample(secondOutcome.nextExpedition, secondOutcome.nextTiles, third);
+    expect(summarizePaceZones(thirdOutcome.nextExpedition.route).analyzedSeconds).toBe(40);
   });
 
   it("keeps historical workouts valid when a zone summary is absent and restores a valid saved summary", () => {
